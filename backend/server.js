@@ -6,7 +6,8 @@ const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const facultyRoutes = require('./src/routes/facultyRoutes');
 const departmentRoutes = require('./src/routes/departmentRoutes');
-
+const studentRoutes = require('./src/routes/studentRoutes');
+const teacherRoutes = require('./src/routes/teacherRoutes');
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -18,6 +19,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/faculties', facultyRoutes);
 // chuyên ngành
 app.use('/api/departments', departmentRoutes);
+// danh sách sinh viên
+app.use('/api/students', studentRoutes);
+// danh sách giảng viên
+app.use('/api/teachers', teacherRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('LMS API is running...');
