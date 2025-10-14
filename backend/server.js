@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors'); //Chia sẻ tài nguyên giữa các nguồn khác nhau.
+const cors = require('cors');
+const connectDB = require('./src/config/db');
+
+// Routes
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const facultyRoutes = require('./src/routes/facultyRoutes');
@@ -11,7 +13,7 @@ const teacherRoutes = require('./src/routes/teacherRoutes');
 const courseRoutes = require('./src/routes/courseRoutes');
 
 const app = express();
-app.use(cors());
+app.use(cors());  // Cho phép tất cả các nguồn giữa frontend và backend
 app.use(express.json());
 
 // Routes
@@ -32,11 +34,12 @@ app.get('/', (req, res) => {
   res.send('LMS API is running...');
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('Connected to MongoDB Atlas');
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => console.error(' MongoDB connection error:', err.message));
+module.exports = app;
+
+// --- chỉ chạy server thật khi KHÔNG ở chế độ test ---
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = process.env.PORT || 3000;
+  connectDB().then(() => {
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  });
+}
