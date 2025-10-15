@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const serviceAccount = {
-  type: process.env.FIREBASE_TYPE,
+  type: "service_account",
   project_id: process.env.FIREBASE_PROJECT_ID,
   private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
   private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Replace \n with actual newlines
@@ -18,7 +18,7 @@ const serviceAccount = {
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET, // ví dụ: "lms-BinaryBandits.com"
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 });
 
 const bucket = admin.storage().bucket();
