@@ -11,6 +11,7 @@ const departmentRoutes = require('./src/routes/departmentRoutes');
 const studentRoutes = require('./src/routes/studentRoutes');
 const teacherRoutes = require('./src/routes/teacherRoutes');
 const courseRoutes = require('./src/routes/courseRoutes');
+const classRoutes = require('./src/routes/classRoutes');
 
 const app = express();
 app.use(cors());  // Cho phép tất cả các nguồn giữa frontend và backend
@@ -29,6 +30,8 @@ app.use('/api/students', studentRoutes);
 app.use('/api/teachers', teacherRoutes);
 // danh sách khóa học
 app.use('/api/courses', courseRoutes);
+// danh sách lớp học phần
+app.use('/api/classes', classRoutes);
 
 app.get('/', (req, res) => {
   res.send('LMS API is running...');
