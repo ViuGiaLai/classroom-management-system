@@ -15,6 +15,7 @@ const classRoutes = require('./src/routes/classRoutes');
 const materialRoutes = require('./src/routes/materialRoutes');
 const assignmentRoutes = require('./src/routes/assignmentRoutes');
 const submissionRoutes = require('./src/routes/submissionRoutes');
+const attendanceRoutes = require('./src/routes/attendanceRoutes');
 
 const app = express();
 app.use(cors());  // Cho phép tất cả các nguồn giữa frontend và backend
@@ -41,6 +42,8 @@ app.use('/api/materials', materialRoutes);
 app.use('/api/assignments', assignmentRoutes); 
 // bài nộp
 app.use('/api/submissions', submissionRoutes);
+// điểm danh
+app.use('/api/attendance', attendanceRoutes);
 
 app.get('/', (req, res) => {
   res.send('LMS API is running...');
