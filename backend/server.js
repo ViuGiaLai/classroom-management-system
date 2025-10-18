@@ -24,6 +24,7 @@ const questionRoutes = require('./src/routes/questionRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const discussionRoutes = require('./src/routes/discussionRoutes');
 const discussionCommentRoutes = require('./src/routes/discussionCommentRoutes');
+const requestRoutes = require('./src/routes/requestsRoutes');
 
 const app = express();
 app.use(cors());
@@ -57,23 +58,42 @@ io.on('connection', (socket) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+// người dùng
 app.use('/api/users', userRoutes);
+// khoa
 app.use('/api/faculties', facultyRoutes);
+// bộ môn
 app.use('/api/departments', departmentRoutes);
+// sinh viên
 app.use('/api/students', studentRoutes);
+// giáo viên
 app.use('/api/teachers', teacherRoutes);
+// khóa học
 app.use('/api/courses', courseRoutes);
+// lớp học
 app.use('/api/classes', classRoutes);
+// tài liệu học tập
 app.use('/api/materials', materialRoutes);
+// bài tập
 app.use('/api/assignments', assignmentRoutes);
+// nộp bài tập
 app.use('/api/submissions', submissionRoutes);
+// điểm danh
 app.use('/api/attendance', attendanceRoutes);
+// bản nộp điểm lớp học phần
 app.use('/api/class-grade-submissions', classGradeSubmissionRoutes);
+// bài thi
 app.use('/api/exams', examRoutes);
+// câu hỏi
 app.use('/api/questions', questionRoutes);
+// thông báo
 app.use('/api/notifications', notificationRoutes);
+// thảo luận
 app.use('/api/discussions', discussionRoutes);
+// bình luận thảo luận
 app.use('/api/discussion-comments', discussionCommentRoutes);
+// yêu cầu
+app.use('/api/requests', requestRoutes);
 
 app.get('/', (req, res) => {
   res.send('LMS API is running...');
