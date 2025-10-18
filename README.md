@@ -67,7 +67,8 @@ npm run dev
 | Họ tên | Vai trò |
 |--------|----------|
 | 🧑‍💻 [Rmah Viu] | Backend Developer · UI/UX Designer |
-| 💻 [Nguyễn Thanh Phước] | Frontend Developer |
+| 💻 [Nguyễn Thanh Phước] | Frontend Developer - UI/UX Designer |
 | 🧠 [Phan Thanh Huy] | Database Designer · Frontend Developer |
 | 🎨 [Thái Đình Đức] | UI/UX Designer · Frontend Developer |
+
 

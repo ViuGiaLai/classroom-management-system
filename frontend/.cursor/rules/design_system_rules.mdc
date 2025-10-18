@@ -1,0 +1,70 @@
+## Design System Rules for LMS Frontend (Figma MCP Integration)
+
+This document describes how to map Figma components and tokens into this codebase.
+
+### 1) Token Definitions
+- Source: `src/index.css`
+- Format: CSS variables under `:root` and Tailwind-like inline theme via `@theme inline`.
+- Colors: `--primary-blue`, `--primary-blue-dark`, neutrals `--gray-*`, etc. Tokens are mirrored as `--color-*` under `@theme inline`.
+- Typography utilities: `@utility` blocks define `heading-large`, `heading-medium`, `body-text`, `label-text`, `button-text`, `small-text`, `small-bold`, `tiny-text`.
+- No build-time token transform; tokens are used directly via classnames.
+
+Usage example:
+```tsx
+<div className="heading-large text-gray-900">Tổng quan hệ thống</div>
+<button className="button-text bg-primary-blue hover:bg-primary-blue-dark" />
+```
+
+### 2) Component Library
+- Location: `src/components/**`
+- Notable groups: `LoginPage/*`, `Admin/*`, icons in `components/icons/*`.
+- Architecture: React function components, co-located styling via utility classes.
+- No Storybook present; rely on Figma for specs.
+
+### 3) Frameworks & Build
+- UI: React (Vite app). Entry at `src/main.jsx`, bundler `vite`.
+- Styling: Tailwind-like utilities via PostCSS `@import "tailwindcss"` and custom `@theme inline` tokens. Global CSS at `src/index.css`.
+
+### 4) Asset Management
+- Static assets in `public/images/*` and `src/assets/*`. Referenced via root-relative paths like `/images/classroom-image.svg`.
+- No explicit CDN config in repo. Vite handles asset bundling.
+
+### 5) Icon System
+- Location: `src/components/icons/*Icon.tsx` (React SVG components, color via `currentColor`).
+- Usage pattern: import icon and set size/color with className.
+```tsx
+import UsersIcon from "../icons/UsersIcon";
+<UsersIcon className="h-5 w-5 text-primary-blue" />
+```
+ - Naming: PascalCase with `Icon` suffix.
+
+### 6) Styling Approach
+- Methodology: Utility-first classes + CSS variables. Global styles in `index.css`.
+- Responsiveness: Tailwind breakpoints (`sm:`, `md:`, `lg:`) already used in Admin layout and sidebar.
+
+### 7) Project Structure
+- Feature-oriented folders: `components/Admin` for admin UI, `components/LoginPage` for login.
+- Index barrels used in some feature areas; prefer per-folder `index.ts/tsx`.
+
+### Mapping Figma → Code
+1. Colors: Map Figma semantic roles to tokens:
+   - Primary (brand) → `--primary-blue` / class `text-primary-blue` and `bg-primary-blue`.
+   - Surfaces → `bg-white` for cards, `bg-gray-50` for app background.
+   - Borders → `border-gray-50/60`.
+2. Typography: Headings/body use utilities from `index.css`.
+3. Spacing/radius: Use Tailwind scale (`p-4`, `rounded-xl`).
+4. Icons: Use React SVG components; set `className` to control size and color.
+
+### Sidebar Implementation Guidance (per Figma 2036:21)
+- Container: fixed width on desktop (`md:w-64`), collapsed on mobile (hidden). Background `bg-white`, border-right `border-gray-50/60`.
+- Sections: Brand header (logo + app name); Nav list with active state; Footer optional.
+- Active item: `bg-gray-50 text-primary-blue` and icon uses `text-primary-blue`.
+- Hover: `hover:bg-gray-50 hover:text-primary-blue`.
+- Icon size: 18–20px; text uses `small-bold`.
+
+### Checklist when implementing from Figma
+- Use tokens from `index.css`.
+- Keep layout grid and spacing consistent with utility scale.
+- Prefer existing icon components; if missing, add new icons under `components/icons`.
+- Keep mobile behavior: hide sidebar under `md`.
+
