@@ -2,17 +2,42 @@ import { LeftPanel } from './LeftPanel';
 import { RightPanel } from './RightPanel';
 import type { LoginPageProps } from './types';
 import { mockLoginPageData } from './loginPageMockData';
+import api from '../../api/axiosConfig';
 
-export function LoginPage({
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+export default function LoginPage({
   onLogin,
   onForgotPassword,
   onTermsClick,
   onPrivacyClick
 }: LoginPageProps) {
-  const handleLogin = (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string) => {
     console.log('Login attempt:', { email, password });
-    if (onLogin) {
-      onLogin(email, password);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { token } = response.data;
+      localStorage.setItem('token', token);
+      console.log('Login successful, token:', token);
+      if (onLogin) {
+        onLogin(email, password);
+      }
+      window.location.href = '/admin/dashboard'; // Chuyển hướng đến trang quản trị
+    } catch (error: any) {
+      console.error('Login failed:', error);
+
+      if (error.response && error.response.status === 401) {
+        toast.error('Sai tài khoản hoặc mật khẩu!', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error('Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại!', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
     }
   };
 
@@ -48,9 +73,9 @@ export function LoginPage({
         onForgotPassword={handleForgotPassword}
         onTermsClick={handleTermsClick}
         onPrivacyClick={handlePrivacyClick}
-        demoAccounts={mockLoginPageData.demoAccounts}
-        demoPassword={mockLoginPageData.demoPassword}
       />
+
+      <ToastContainer />
     </div>
   );
 }
