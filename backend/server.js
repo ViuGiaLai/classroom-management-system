@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');             // ⚡ Thêm
+const { Server } = require('socket.io');  // ⚡ Thêm
 const connectDB = require('./src/config/db');
 
 // Routes
@@ -18,38 +20,60 @@ const submissionRoutes = require('./src/routes/submissionRoutes');
 const attendanceRoutes = require('./src/routes/attendanceRoutes');
 const classGradeSubmissionRoutes = require('./src/routes/classGradeSubmissionRoutes');
 const examRoutes = require('./src/routes/examRoutes');
+const questionRoutes = require('./src/routes/questionRoutes');
+const notificationRoutes = require('./src/routes/notificationRoutes');
+const discussionRoutes = require('./src/routes/discussionRoutes');
+const discussionCommentRoutes = require('./src/routes/discussionCommentRoutes');
 
 const app = express();
-app.use(cors());  // Cho phép tất cả các nguồn giữa frontend và backend
+app.use(cors());
 app.use(express.json());
+
+// Tạo HTTP server riêng để dùng với Socket.IO
+const server = http.createServer(app);
+
+//  Khởi tạo Socket.IO server
+const io = new Server(server, {
+  cors: { origin: '*' },
+});
+
+// Lưu `io` vào app.locals để controller có thể dùng
+app.locals.io = io;
+
+// Khi client kết nối socket
+io.on('connection', (socket) => {
+  console.log('🔌 Client connected:', socket.id);
+
+  // Khi client join vào 1 room discussion
+  socket.on('joinDiscussion', (discussionId) => {
+    socket.join(discussionId);
+    console.log(`Client ${socket.id} joined discussion ${discussionId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(' Client disconnected:', socket.id);
+  });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-// khoa
 app.use('/api/faculties', facultyRoutes);
-// chuyên ngành
 app.use('/api/departments', departmentRoutes);
-// danh sách sinh viên
 app.use('/api/students', studentRoutes);
-// danh sách giảng viên
 app.use('/api/teachers', teacherRoutes);
-// danh sách khóa học
 app.use('/api/courses', courseRoutes);
-// danh sách lớp học phần
 app.use('/api/classes', classRoutes);
-// tài liệu học tập
 app.use('/api/materials', materialRoutes);
-// bài tập
-app.use('/api/assignments', assignmentRoutes); 
-// bài nộp
+app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
-// điểm danh
 app.use('/api/attendance', attendanceRoutes);
-// bản nộp điểm lớp học phần
 app.use('/api/class-grade-submissions', classGradeSubmissionRoutes);
-// bài thi
 app.use('/api/exams', examRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/discussions', discussionRoutes);
+app.use('/api/discussion-comments', discussionCommentRoutes);
 
 app.get('/', (req, res) => {
   res.send('LMS API is running...');
@@ -61,6 +85,6 @@ module.exports = app;
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3000;
   connectDB().then(() => {
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   });
 }
