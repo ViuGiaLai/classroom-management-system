@@ -8,7 +8,9 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
       family: 4, // force IPv4 to avoid ECONNREFUSED on ::1 (IPv6) in some environments
     };
-    const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/binary-bandits';
+    // const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/binary-bandits';
+    const uri = process.env.MONGO_URI;
+
     const conn = await mongoose.connect(uri, options);
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
