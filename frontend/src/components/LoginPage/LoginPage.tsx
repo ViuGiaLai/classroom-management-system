@@ -3,6 +3,7 @@ import { LeftPanel } from './LeftPanel';
 import { RightPanel } from './RightPanel';
 import type { LoginPageProps } from './types';
 import { mockLoginPageData } from './loginPageMockData';
+// @ts-ignore
 import api from '../../api/axiosConfig';
 
 import { ToastContainer, toast } from 'react-toastify';
