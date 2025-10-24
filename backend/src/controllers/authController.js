@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
 const generateToken = require('../utils/generateToken');
+const { saveSession } = require('../utils/sessionStore');
 
 // Đăng ký
 exports.register = async (req, res) => {
@@ -66,6 +67,9 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.role);
+
+    // Lưu token vào Redis 
+    await saveSession(user._id.toString(), token);
 
     res.status(200).json({
       message: 'Login successful',

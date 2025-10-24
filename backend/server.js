@@ -4,6 +4,8 @@ const cors = require('cors');
 const http = require('http');             // ⚡ Thêm
 const { Server } = require('socket.io');  // ⚡ Thêm
 const connectDB = require('./src/config/db');
+require('./src/config/redis'); // redis
+
 
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
