@@ -12,15 +12,24 @@ CREATE TABLE users (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    -- Thông tin cơ bản
     full_name VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'teacher', 'student') NOT NULL,
+    gender ENUM('male', 'female', 'other'),
+    date_of_birth DATE,
+    phone VARCHAR(20),
+    address TEXT,
     avatar_url TEXT,
+
+    role ENUM('admin', 'teacher', 'student') NOT NULL,
+
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_active ON users(is_active);
 
 -- ============================================
 -- FACULTIES
@@ -44,57 +53,67 @@ CREATE TABLE departments (
 CREATE INDEX idx_departments_faculty ON departments(faculty_id);
 
 -- ============================================
--- TEACHERS
+-- TEACHERS (Kế thừa từ bảng users)
 -- ============================================
 CREATE TABLE teachers (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-    user_id CHAR(36) UNIQUE NOT NULL,
-    teacher_code VARCHAR(50) UNIQUE NOT NULL,
-    gender ENUM('male', 'female', 'other'),
-    date_of_birth DATE,
-    phone VARCHAR(20),
-    address TEXT,
+    user_id CHAR(36) UNIQUE NOT NULL,         
+    teacher_code VARCHAR(50) UNIQUE NOT NULL,    
+
+    -- Thông tin nghề nghiệp
     faculty_id CHAR(36),
     department_id CHAR(36),
     position VARCHAR(100),
     degree VARCHAR(100),
-    specialization VARCHAR(255),
+    specialization VARCHAR(255),     -- Chuyên môn chính
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    -- Ràng buộc khóa ngoại
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (faculty_id) REFERENCES faculties(id),
     FOREIGN KEY (department_id) REFERENCES departments(id)
 );
+
+-- Tối ưu truy vấn
 CREATE INDEX idx_teachers_user ON teachers(user_id);
 CREATE INDEX idx_teachers_code ON teachers(teacher_code);
+CREATE INDEX idx_teachers_faculty ON teachers(faculty_id);
+CREATE INDEX idx_teachers_department ON teachers(department_id);
 
 -- ============================================
--- STUDENTS
+-- STUDENTS (Kế thừa từ bảng users)
 -- ============================================
 CREATE TABLE students (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-    user_id CHAR(36) UNIQUE NOT NULL,
-    student_code VARCHAR(50) UNIQUE NOT NULL,
-    gender ENUM('male', 'female', 'other'),
-    date_of_birth DATE,
-    phone VARCHAR(20),
-    address TEXT,
-    administrative_class VARCHAR(50),
+    user_id CHAR(36) UNIQUE NOT NULL,              
+    student_code VARCHAR(50) UNIQUE NOT NULL,      
+
+    -- Thông tin học tập riêng
+    administrative_class VARCHAR(50),               -- Lớp hành chính
     faculty_id CHAR(36),
     department_id CHAR(36),
     status ENUM('studying', 'reserved', 'leave', 'graduated') DEFAULT 'studying',
-    year_of_admission INT,
-    academic_year VARCHAR(20),
-    advisor_id CHAR(36),
+    year_of_admission INT,                          -- Năm nhập học
+    academic_year VARCHAR(20),                      -- Niên khóa
+    advisor_id CHAR(36),                            -- Cố vấn học tập (liên kết teachers)
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    -- Khóa ngoại
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (faculty_id) REFERENCES faculties(id),
     FOREIGN KEY (department_id) REFERENCES departments(id),
     FOREIGN KEY (advisor_id) REFERENCES teachers(id)
 );
+
+-- Tối ưu truy vấn
 CREATE INDEX idx_students_user ON students(user_id);
 CREATE INDEX idx_students_code ON students(student_code);
+CREATE INDEX idx_students_faculty ON students(faculty_id);
+CREATE INDEX idx_students_department ON students(department_id);
 
 -- ============================================
 -- COURSES
@@ -302,6 +321,7 @@ CREATE INDEX idx_notifications_class ON notifications(class_id);
 -- ============================================
 -- DISCUSSIONS
 -- ============================================
+-- Bảng 1: Thảo luận
 CREATE TABLE discussions (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     class_id CHAR(36) NOT NULL,
@@ -313,16 +333,40 @@ CREATE TABLE discussions (
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES users(id)
 );
-
-CREATE TABLE discussion_replies (
+-- Bảng 2: Bình luận cấp 1
+CREATE TABLE discussion_comments (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+
     discussion_id CHAR(36) NOT NULL,
     author_id CHAR(36) NOT NULL,
     content TEXT NOT NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Khóa ngoại
     FOREIGN KEY (discussion_id) REFERENCES discussions(id) ON DELETE CASCADE,
-    FOREIGN KEY (author_id) REFERENCES users(id)
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Tối ưu truy vấn
+CREATE INDEX idx_discussion_comments_discussion ON discussion_comments(discussion_id);
+
+-- Bảng 3: Phản hồi cấp 2
+
+CREATE TABLE discussion_replies (
+    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    comment_id CHAR(36) NOT NULL,
+    author_id CHAR(36) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (comment_id) REFERENCES discussion_comments(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_discussion_replies_comment ON discussion_replies(comment_id);
+
+-- mối quan hệ discussions (1) ────< (n) discussion_comments (1) ────< (n) discussion_replies
 
 -- ============================================
 -- REQUESTS
