@@ -1,6 +1,52 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 
+// [POST] /api/users - Tạo người dùng mới
+exports.createUser = async (req, res) => {
+  try {
+    const {
+      full_name,
+      email,
+      password,
+      role,
+      gender,
+      date_of_birth,
+      phone,
+      address,
+      avatar_url,
+    } = req.body;
+
+    // Kiểm tra email trùng
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Mã hóa mật khẩu
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      full_name,
+      email,
+      password_hash: hashedPassword,
+      role: role || 'student',
+      gender,
+      date_of_birth,
+      phone,
+      address,
+      avatar_url,
+    });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: { ...user.toObject(), password_hash: undefined },
+    });
+  } catch (err) {
+    console.error('Error creating user:', err.message);
+    res.status(500).json({ message: 'Server error while creating user' });
+  }
+};
+
 // [GET] /api/users - Lấy danh sách tất cả người dùng
 exports.getAllUsers = async (req, res) => {
   try {

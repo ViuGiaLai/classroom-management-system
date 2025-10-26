@@ -3,45 +3,64 @@ const User = require('../models/userModel');
 const generateToken = require('../utils/generateToken');
 const { saveSession } = require('../utils/sessionStore');
 
-// Đăng ký
+// [POST] /api/auth/register - Đăng ký tài khoản
 exports.register = async (req, res) => {
-
-  // Nếu không có full_name thì mặc định là "New User", và role mặc định là "student".
   try {
-    const { full_name = 'New User', email, password, role = 'student' } = req.body;
+    const {
+      full_name = 'New User',
+      email,
+      password,
+      role = 'student',
+      gender,
+      date_of_birth,
+      phone,
+      address,
+      avatar_url,
+    } = req.body;
 
     // Kiểm tra đầu vào
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Kiểm tra email đã tồn tại chưa
+    // Kiểm tra email trùng
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Hash the password
+    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user
+    // Tạo người dùng mới
     const user = await User.create({
       full_name,
       email,
       password_hash: hashedPassword,
       role,
+      gender,
+      date_of_birth,
+      phone,
+      address,
+      avatar_url,
     });
 
-    // Tạo token đăng nhập
+    // Tạo token JWT
     const token = generateToken(user._id, user.role);
+
+    // Lưu session vào Redis (tuỳ chọn)
+    await saveSession(user._id.toString(), token);
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
         id: user._id,
+        full_name: user.full_name,
         email: user.email,
         role: user.role,
+        gender: user.gender,
+        phone: user.phone,
       },
     });
   } catch (err) {
@@ -50,7 +69,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// Đăng nhập
+// [POST] /api/auth/login - Đăng nhập
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -60,7 +79,6 @@ exports.login = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // So sánh mật khẩu
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid password' });
@@ -68,7 +86,7 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user._id, user.role);
 
-    // Lưu token vào Redis 
+    // Lưu token vào Redis để quản lý session đăng nhập
     await saveSession(user._id.toString(), token);
 
     res.status(200).json({
@@ -76,8 +94,11 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
+        full_name: user.full_name,
         email: user.email,
         role: user.role,
+        gender: user.gender,
+        avatar_url: user.avatar_url,
       },
     });
   } catch (err) {
@@ -86,7 +107,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Lấy thông tin người dùng
+// [GET] /api/auth/me - Lấy thông tin người dùng hiện tại
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password_hash');
