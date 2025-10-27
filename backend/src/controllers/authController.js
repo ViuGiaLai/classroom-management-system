@@ -10,6 +10,7 @@ exports.register = async (req, res) => {
       full_name = 'New User',
       email,
       password,
+      confirm_password, 
       role = 'student',
       gender,
       date_of_birth,
@@ -19,8 +20,13 @@ exports.register = async (req, res) => {
     } = req.body;
 
     // Kiểm tra đầu vào
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+    if (!email || !password || !confirm_password) {
+      return res.status(400).json({ message: 'Email, password, and confirm password are required' });
+    }
+
+    // Kiểm tra xác nhận mật khẩu
+    if (password !== confirm_password) {
+      return res.status(400).json({ message: 'Passwords do not match' });
     }
 
     // Kiểm tra email trùng
@@ -48,7 +54,7 @@ exports.register = async (req, res) => {
     // Tạo token JWT
     const token = generateToken(user._id, user.role);
 
-    // Lưu session vào Redis (tuỳ chọn)
+    // Lưu session vào Redis (tùy chọn)
     await saveSession(user._id.toString(), token);
 
     res.status(201).json({
