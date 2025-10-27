@@ -4,7 +4,7 @@ import Footer from "../components/Home/Footer";
 
 const Home = () => {
   return (
-    <div>
+    <div className="container-fluid overflow-hidden">
       <Header />
       <HomeContent />
       <Footer />

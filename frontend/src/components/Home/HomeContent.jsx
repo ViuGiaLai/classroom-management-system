@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import { useNavigate } from 'react-router-dom';
 
 // Định nghĩa animation cho container, các phần tử con sẽ xuất hiện
 const container = {
@@ -79,6 +80,8 @@ const Content = () => {
     e.preventDefault();
     console.log('Form submitted:', formData);
   };
+  // onclick navigate to login page
+  const navigate = useNavigate();
 
   return (
     <motion.main 
@@ -88,7 +91,7 @@ const Content = () => {
     >
       {/* Hero Section */}
       <motion.section 
-        className="position-relative overflow-hidden py-5 py-lg-6 py-xl-7"
+        className="position-relative overflow-hidden pt-3 py-lg-4 py-xl-5"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -156,6 +159,7 @@ const Content = () => {
                     boxShadow: '0 10px 20px rgba(13, 110, 253, 0.2)'
                   }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/register')}
                 >
                   Bắt đầu ngay
                   <motion.span
@@ -178,6 +182,7 @@ const Content = () => {
                     backgroundColor: 'rgba(228, 181, 26, 0.1)'
                   }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/login')}
                 >
                   Đăng nhập
                 </motion.button>
