@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const Organization = require('../models/organizationModel');
 const bcrypt = require('bcrypt');
 
 // [POST] /api/users - Tạo người dùng mới
@@ -14,12 +15,19 @@ exports.createUser = async (req, res) => {
       phone,
       address,
       avatar_url,
+      organization_id,
     } = req.body;
 
     // Kiểm tra email trùng
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Kiểm tra tổ chức tồn tại
+    const organization = await Organization.findById(organization_id);
+    if (!organization) {
+      return res.status(400).json({ message: 'Invalid organization ID' });
     }
 
     // Mã hóa mật khẩu
@@ -35,6 +43,7 @@ exports.createUser = async (req, res) => {
       phone,
       address,
       avatar_url,
+      organization_id,
     });
 
     res.status(201).json({
@@ -47,10 +56,18 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// [GET] /api/users - Lấy danh sách tất cả người dùng
+// [GET] /api/users - Lấy danh sách tất cả người dùng (có thể lọc theo tổ chức)
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password_hash');
+    const filter = {};
+    if (req.query.organization_id) {
+      filter.organization_id = req.query.organization_id;
+    }
+
+    const users = await User.find(filter)
+      .select('-password_hash')
+      .populate('organization_id');
+
     res.status(200).json(users);
   } catch (err) {
     console.error('Error fetching users:', err.message);
@@ -72,12 +89,21 @@ exports.updateUser = async (req, res) => {
       avatar_url,
       role,
       is_active,
+      organization_id,
     } = req.body;
 
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Cập nhật các trường nếu có
+    // Nếu có tổ chức mới, kiểm tra hợp lệ
+    if (organization_id && organization_id !== user.organization_id.toString()) {
+      const organization = await Organization.findById(organization_id);
+      if (!organization) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      user.organization_id = organization_id;
+    }
+
     if (full_name) user.full_name = full_name;
     if (password) user.password_hash = await bcrypt.hash(password, 10);
     if (gender) user.gender = gender;

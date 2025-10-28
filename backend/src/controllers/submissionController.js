@@ -6,14 +6,17 @@ const { ref, uploadBytes, getDownloadURL } = require('firebase/storage');
 const randomName = (original) =>
   `${Date.now()}-${Math.floor(Math.random() * 10000)}-${original}`;
 
+// [POST] Tạo bài nộp — thuộc tổ chức
 exports.createSubmission = async (req, res) => {
   try {
     const { assignment_id } = req.body;
     const file = req.file;
+    const organization_id = req.user.organization_id;
 
     if (!file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!assignment_id) return res.status(400).json({ message: 'Missing assignment_id' });
 
-    // upload lên Firebase Storage
+    // Upload lên Firebase Storage
     const fileName = randomName(file.originalname);
     const storageRef = ref(storage, `submissions/${fileName}`);
     await uploadBytes(storageRef, file.buffer);
@@ -26,6 +29,7 @@ exports.createSubmission = async (req, res) => {
       file_url: fileURL,
       file_size: file.size,
       status: 'pending',
+      organization_id,
     });
 
     res.status(201).json(submission);
@@ -34,11 +38,16 @@ exports.createSubmission = async (req, res) => {
   }
 };
 
-// Lấy danh sách bài nộp theo assignment
+// [GET] Lấy danh sách bài nộp theo assignment — thuộc tổ chức
 exports.getSubmissionsByAssignment = async (req, res) => {
   try {
     const { assignmentId } = req.params;
-    const submissions = await Submission.find({ assignment_id: assignmentId })
+    const organization_id = req.user.organization_id;
+
+    const submissions = await Submission.find({
+      assignment_id: assignmentId,
+      organization_id,
+    })
       .populate('student_id', 'full_name email')
       .sort({ submitted_at: -1 });
 
@@ -48,14 +57,15 @@ exports.getSubmissionsByAssignment = async (req, res) => {
   }
 };
 
-// Cập nhật điểm và feedback (giáo viên chấm)
+// [PATCH] Cập nhật điểm và feedback — thuộc tổ chức
 exports.gradeSubmission = async (req, res) => {
   try {
     const { id } = req.params;
     const { score, feedback } = req.body;
+    const organization_id = req.user.organization_id;
 
-    const updated = await Submission.findByIdAndUpdate(
-      id,
+    const updated = await Submission.findOneAndUpdate(
+      { _id: id, organization_id },
       {
         score,
         feedback,
@@ -66,20 +76,27 @@ exports.gradeSubmission = async (req, res) => {
       { new: true }
     );
 
-    if (!updated) return res.status(404).json({ message: 'Submission not found' });
+    if (!updated) return res.status(404).json({ message: 'Submission not found in your organization' });
     res.status(200).json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-//  Xóa bài nộp
+// [DELETE] Xóa bài nộp — thuộc tổ chức
 exports.deleteSubmission = async (req, res) => {
   try {
-    const deleted = await Submission.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Submission not found' });
+    const organization_id = req.user.organization_id;
+
+    const deleted = await Submission.findOneAndDelete({
+      _id: req.params.id,
+      organization_id,
+    });
+
+    if (!deleted) return res.status(404).json({ message: 'Submission not found in your organization' });
     res.status(200).json({ message: 'Submission deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+

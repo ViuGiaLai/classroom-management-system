@@ -4,22 +4,39 @@ const User = require('../models/userModel');
 // [POST] /api/teachers - Tạo giảng viên mới
 exports.createTeacher = async (req, res) => {
   try {
-    const { user_id, teacher_code, faculty_id, department_id, position, degree, specialization } = req.body;
+    const {
+      user_id,
+      teacher_code,
+      faculty_id,
+      department_id,
+      position,
+      degree,
+      specialization,
+    } = req.body;
 
-    // Kiểm tra user_id có tồn tại
-    const existingUser = await User.findById(user_id);
+    const organization_id = req.user.organization_id;
+
+    // Kiểm tra user_id có tồn tại và thuộc tổ chức
+    const existingUser = await User.findOne({ _id: user_id, organization_id });
     if (!existingUser) {
-      return res.status(400).json({ message: 'Invalid user_id: User not found' });
+      return res.status(400).json({ message: 'Invalid user_id or user not in your organization' });
     }
 
-    // Kiểm tra mã giảng viên trùng
-    const existingTeacher = await Teacher.findOne({ teacher_code });
+    // Kiểm tra mã giảng viên trùng trong tổ chức
+    const existingTeacher = await Teacher.findOne({ teacher_code, organization_id });
     if (existingTeacher) {
-      return res.status(400).json({ message: 'Teacher code already exists' });
+      return res.status(400).json({ message: 'Teacher code already exists in your organization' });
     }
 
     const teacher = await Teacher.create({
-      user_id, teacher_code, faculty_id, department_id, position, degree, specialization,
+      user_id,
+      teacher_code,
+      faculty_id,
+      department_id,
+      position,
+      degree,
+      specialization,
+      organization_id,
     });
 
     res.status(201).json({
@@ -32,10 +49,12 @@ exports.createTeacher = async (req, res) => {
   }
 };
 
-// [GET] /api/teachers - Lấy danh sách giảng viên
+// [GET] /api/teachers - Lấy danh sách giảng viên theo tổ chức
 exports.getTeachers = async (req, res) => {
   try {
-    const teachers = await Teacher.find()
+    const organization_id = req.user.organization_id;
+
+    const teachers = await Teacher.find({ organization_id })
       .populate('user_id', 'full_name email role')
       .populate('faculty_id', 'name')
       .populate('department_id', 'name')
@@ -48,15 +67,17 @@ exports.getTeachers = async (req, res) => {
   }
 };
 
-// [GET] /api/teachers/:id - Lấy thông tin một giảng viên
+// [GET] /api/teachers/:id - Lấy thông tin một giảng viên theo tổ chức
 exports.getTeacherById = async (req, res) => {
   try {
-    const teacher = await Teacher.findById(req.params.id)
+    const organization_id = req.user.organization_id;
+
+    const teacher = await Teacher.findOne({ _id: req.params.id, organization_id })
       .populate('user_id', 'full_name email role')
       .populate('faculty_id', 'name')
       .populate('department_id', 'name');
 
-    if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+    if (!teacher) return res.status(404).json({ message: 'Teacher not found in your organization' });
 
     res.status(200).json(teacher);
   } catch (err) {
@@ -65,7 +86,7 @@ exports.getTeacherById = async (req, res) => {
   }
 };
 
-// [PUT] /api/teachers/:id - Cập nhật thông tin giảng viên
+// [PUT] /api/teachers/:id - Cập nhật thông tin giảng viên theo tổ chức
 exports.updateTeacher = async (req, res) => {
   try {
     const {
@@ -77,19 +98,22 @@ exports.updateTeacher = async (req, res) => {
       specialization,
     } = req.body;
 
-    // Nếu có cập nhật teacher_code, cần kiểm tra trùng
+    const organization_id = req.user.organization_id;
+
+    // Kiểm tra mã giảng viên trùng trong tổ chức
     if (teacher_code) {
       const existingTeacher = await Teacher.findOne({
         teacher_code,
+        organization_id,
         _id: { $ne: req.params.id },
       });
       if (existingTeacher) {
-        return res.status(400).json({ message: 'Teacher code already exists' });
+        return res.status(400).json({ message: 'Teacher code already exists in your organization' });
       }
     }
 
-    const teacher = await Teacher.findByIdAndUpdate(
-      req.params.id,
+    const teacher = await Teacher.findOneAndUpdate(
+      { _id: req.params.id, organization_id },
       {
         teacher_code,
         faculty_id,
@@ -101,7 +125,7 @@ exports.updateTeacher = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+    if (!teacher) return res.status(404).json({ message: 'Teacher not found in your organization' });
 
     res.status(200).json({
       message: 'Teacher updated successfully',
@@ -113,11 +137,13 @@ exports.updateTeacher = async (req, res) => {
   }
 };
 
-// [DELETE] /api/teachers/:id - Xóa giảng viên
+// [DELETE] /api/teachers/:id - Xóa giảng viên theo tổ chức
 exports.deleteTeacher = async (req, res) => {
   try {
-    const teacher = await Teacher.findByIdAndDelete(req.params.id);
-    if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+    const organization_id = req.user.organization_id;
+
+    const teacher = await Teacher.findOneAndDelete({ _id: req.params.id, organization_id });
+    if (!teacher) return res.status(404).json({ message: 'Teacher not found in your organization' });
 
     res.status(200).json({ message: 'Teacher deleted successfully' });
   } catch (err) {

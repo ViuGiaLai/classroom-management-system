@@ -1,18 +1,21 @@
 const Discussion = require('../models/discussionModel');
 
-// Tạo bài thảo luận
+// [POST] Tạo bài thảo luận — thuộc tổ chức
 exports.createDiscussion = async (req, res) => {
   try {
     const { class_id, author_id, title, content } = req.body;
+    const organization_id = req.user.organization_id;
 
-    if (!class_id || !author_id || !title || !content)
+    if (!class_id || !author_id || !title || !content) {
       return res.status(400).json({ message: 'Missing required fields' });
+    }
 
     const discussion = await Discussion.create({
       class_id,
       author_id,
       title,
       content,
+      organization_id,
     });
 
     res.status(201).json(discussion);
@@ -21,11 +24,16 @@ exports.createDiscussion = async (req, res) => {
   }
 };
 
-// Lấy danh sách thảo luận trong lớp
+// [GET] Lấy danh sách thảo luận trong lớp — thuộc tổ chức
 exports.getDiscussionsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
-    const discussions = await Discussion.find({ class_id: classId })
+    const organization_id = req.user.organization_id;
+
+    const discussions = await Discussion.find({
+      class_id: classId,
+      organization_id,
+    })
       .populate('author_id', 'full_name email')
       .sort({ created_at: -1 });
 
@@ -35,12 +43,19 @@ exports.getDiscussionsByClass = async (req, res) => {
   }
 };
 
-// Lấy 1 bài thảo luận
+// [GET] Lấy 1 bài thảo luận — thuộc tổ chức
 exports.getDiscussionById = async (req, res) => {
   try {
-    const discussion = await Discussion.findById(req.params.id)
-      .populate('author_id', 'full_name email');
-    if (!discussion) return res.status(404).json({ message: 'Discussion not found' });
+    const organization_id = req.user.organization_id;
+
+    const discussion = await Discussion.findOne({
+      _id: req.params.id,
+      organization_id,
+    }).populate('author_id', 'full_name email');
+
+    if (!discussion) {
+      return res.status(404).json({ message: 'Discussion not found in your organization' });
+    }
 
     res.status(200).json(discussion);
   } catch (error) {
@@ -48,11 +63,20 @@ exports.getDiscussionById = async (req, res) => {
   }
 };
 
-// Cập nhật (chỉ author hoặc admin)
+// [PUT] Cập nhật bài thảo luận — thuộc tổ chức
 exports.updateDiscussion = async (req, res) => {
   try {
-    const updated = await Discussion.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Discussion not found' });
+    const organization_id = req.user.organization_id;
+
+    const updated = await Discussion.findOneAndUpdate(
+      { _id: req.params.id, organization_id },
+      req.body,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Discussion not found in your organization' });
+    }
 
     res.status(200).json(updated);
   } catch (error) {
@@ -60,15 +84,20 @@ exports.updateDiscussion = async (req, res) => {
   }
 };
 
-//  Đánh dấu đã giải quyết
+// [PATCH] Đánh dấu đã giải quyết — thuộc tổ chức
 exports.markAsResolved = async (req, res) => {
   try {
-    const updated = await Discussion.findByIdAndUpdate(
-      req.params.id,
+    const organization_id = req.user.organization_id;
+
+    const updated = await Discussion.findOneAndUpdate(
+      { _id: req.params.id, organization_id },
       { status: 'resolved' },
       { new: true }
     );
-    if (!updated) return res.status(404).json({ message: 'Discussion not found' });
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Discussion not found in your organization' });
+    }
 
     res.status(200).json(updated);
   } catch (error) {
@@ -76,14 +105,23 @@ exports.markAsResolved = async (req, res) => {
   }
 };
 
-// Xóa thảo luận
+// [DELETE] Xóa bài thảo luận — thuộc tổ chức
 exports.deleteDiscussion = async (req, res) => {
   try {
-    const deleted = await Discussion.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Discussion not found' });
+    const organization_id = req.user.organization_id;
+
+    const deleted = await Discussion.findOneAndDelete({
+      _id: req.params.id,
+      organization_id,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Discussion not found in your organization' });
+    }
 
     res.status(200).json({ message: 'Deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+

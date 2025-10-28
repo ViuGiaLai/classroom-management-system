@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.post('/', protect, authorize('admin'), createUser);
 router.get('/', protect, authorize('admin'), getAllUsers);
-router.put('/:id', protect, updateUser);
+// - tự cập nhật thông tin cá nhân
+router.put('/:id', protect, authorize('admin', 'teacher', 'student'), updateUser);
 router.delete('/:id', protect, authorize('admin'), deleteUser);
 
 module.exports = router;

@@ -6,6 +6,13 @@ const assignmentSchema = new mongoose.Schema({
     ref: 'Class',
     required: true,
   },
+  // Liên kết với tổ chức
+  organization_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+  },
+
   title: {
     type: String,
     required: true,
@@ -35,5 +42,6 @@ const assignmentSchema = new mongoose.Schema({
 // Indexes (tối ưu tìm kiếm)
 assignmentSchema.index({ class_id: 1 });
 assignmentSchema.index({ due_date: 1 });
+assignmentSchema.index({ organization_id: 1 });
 
 module.exports = mongoose.model('Assignment', assignmentSchema);

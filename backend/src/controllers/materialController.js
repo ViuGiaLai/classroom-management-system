@@ -7,19 +7,24 @@ const fs = require('fs');
 exports.uploadMaterial = async (req, res) => {
   try {
     const { class_id, title } = req.body;
+    const organization_id = req.user.organization_id;
     const file = req.file;
+
     if (!file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!class_id || !title) return res.status(400).json({ message: 'Missing required fields' });
 
     // Tạo tên file ngẫu nhiên
     const fileName = `materials/${uuidv4()}-${file.originalname}`;
-    const filePath = file.path; // Use multer's file.path instead of constructing manually
+    const filePath = file.path;
 
     // Upload file lên Firebase Storage
     await bucket.upload(filePath, {
       destination: fileName,
       metadata: {
         contentType: file.mimetype,
-        metadata: { firebaseStorageDownloadTokens: uuidv4() },
+        metadata: {
+          firebaseStorageDownloadTokens: uuidv4(),
+        },
       },
     });
 
@@ -34,6 +39,7 @@ exports.uploadMaterial = async (req, res) => {
       file_type: file.mimetype,
       file_size: file.size,
       uploaded_by: req.user.id,
+      organization_id,
     });
 
     // Xoá file local sau khi upload xong
@@ -41,8 +47,8 @@ exports.uploadMaterial = async (req, res) => {
 
     res.status(201).json(material);
   } catch (error) {
-    console.error(' Upload error:', error);
+    console.error('Upload error:', error);
     res.status(500).json({ message: error.message });
-    }
-
+  }
 };
+

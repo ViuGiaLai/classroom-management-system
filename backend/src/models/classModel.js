@@ -14,6 +14,14 @@ const classSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+
+    // Liên kết với tổ chức
+    organization_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+      index: true,
+    },
     semester: {
       type: String,
       required: true,
@@ -22,7 +30,10 @@ const classSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    schedule: String,
+
+    schedule: {
+      type: String,
+    },
     max_capacity: {
       type: Number,
       default: 40,
@@ -37,7 +48,9 @@ const classSchema = new mongoose.Schema(
   }
 );
 
+// Indexes (tối ưu tìm kiếm)
 classSchema.index({ semester: 1, year: 1 });
+classSchema.index({ organization_id: 1 });
 
 const Class = mongoose.model('Class', classSchema);
 module.exports = Class;

@@ -1,77 +1,71 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
+const Organization = require('../models/organizationModel');
 const generateToken = require('../utils/generateToken');
 const { saveSession } = require('../utils/sessionStore');
 
-// [POST] /api/auth/register - Đăng ký tài khoản
-exports.register = async (req, res) => {
+// [POST] /api/auth/register - Tạo tổ chức và tài khoản admin
+exports.registerOrganization = async (req, res) => {
   try {
     const {
-      full_name = 'New User',
-      email,
-      password,
-      confirm_password, 
-      role = 'student',
-      gender,
-      date_of_birth,
-      phone,
-      address,
-      avatar_url,
+      org_name,
+      org_email,
+      org_phone,
+      org_address,
+      description,
+      admin_name,
+      admin_email,
+      admin_password,
     } = req.body;
 
-    // Kiểm tra đầu vào
-    if (!email || !password || !confirm_password) {
-      return res.status(400).json({ message: 'Email, password, and confirm password are required' });
+    // Kiểm tra email tổ chức trùng
+    const existingOrg = await Organization.findOne({ email: org_email });
+    if (existingOrg) {
+      return res.status(400).json({ message: 'Email tổ chức đã tồn tại' });
     }
 
-    // Kiểm tra xác nhận mật khẩu
-    if (password !== confirm_password) {
-      return res.status(400).json({ message: 'Passwords do not match' });
-    }
-
-    // Kiểm tra email trùng
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
-
-    // Mã hóa mật khẩu
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Tạo người dùng mới
-    const user = await User.create({
-      full_name,
-      email,
-      password_hash: hashedPassword,
-      role,
-      gender,
-      date_of_birth,
-      phone,
-      address,
-      avatar_url,
+    // Tạo tổ chức
+    const organization = new Organization({
+      name: org_name,
+      email: org_email,
+      phone: org_phone,
+      address: org_address,
+      description,
     });
+    await organization.save();
+
+    // Mã hóa mật khẩu admin
+    const hashedPassword = await bcrypt.hash(admin_password, 10);
+
+    // Tạo tài khoản admin
+    const adminUser = new User({
+      full_name: admin_name,
+      email: admin_email,
+      password_hash: hashedPassword,
+      role: 'admin',
+      organization_id: organization._id,
+    });
+    await adminUser.save();
 
     // Tạo token JWT
-    const token = generateToken(user._id, user.role);
+    const token = generateToken(adminUser._id, adminUser.role, organization._id);
 
     // Lưu session vào Redis (tùy chọn)
-    await saveSession(user._id.toString(), token);
+    await saveSession(adminUser._id.toString(), token);
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
-        id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        gender: user.gender,
-        phone: user.phone,
+        id: adminUser._id,
+        full_name: adminUser.full_name,
+        email: adminUser.email,
+        role: adminUser.role,
+        organization_id: organization._id,
       },
     });
   } catch (err) {
-    console.error('Register error:', err.message);
-    res.status(500).json({ message: 'Server error' });
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -90,7 +84,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid password' });
     }
 
-    const token = generateToken(user._id, user.role);
+    const token = generateToken(user._id, user.role, user.organization_id);
 
     // Lưu token vào Redis để quản lý session đăng nhập
     await saveSession(user._id.toString(), token);
@@ -103,8 +97,7 @@ exports.login = async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
-        gender: user.gender,
-        avatar_url: user.avatar_url,
+        organization_id: user.organization_id,
       },
     });
   } catch (err) {
@@ -126,3 +119,4 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+

@@ -18,6 +18,13 @@ const userSchema = new mongoose.Schema(
       enum: ['admin', 'teacher', 'student'],
       default: 'student',
     },
+     // Liên kết tổ chức
+    organization_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true, //bắt buộc người dùng phải thuộc một tổ chức
+    },
+
     is_active: { type: Boolean, default: true },
   },
   {

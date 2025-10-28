@@ -8,6 +8,7 @@ require('./src/config/redis'); // redis
 
 
 // Routes
+const organizationRoutes = require('./src/routes/organizationRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const facultyRoutes = require('./src/routes/facultyRoutes');
@@ -59,6 +60,8 @@ io.on('connection', (socket) => {
 });
 
 // Routes
+// tổ chức
+app.use('/api/organizations', organizationRoutes);
 app.use('/api/auth', authRoutes);
 // người dùng
 app.use('/api/users', userRoutes);

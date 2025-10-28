@@ -2,11 +2,19 @@ const mongoose = require('mongoose');
 
 const teacherSchema = new mongoose.Schema(
   {
+    // Liên kết với người dùng
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
       unique: true,
+    },
+
+    // Liên kết với tổ chức
+    organization_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
     },
 
     teacher_code: {
@@ -48,5 +56,6 @@ teacherSchema.index({ user_id: 1 });
 teacherSchema.index({ teacher_code: 1 });
 teacherSchema.index({ faculty_id: 1 });
 teacherSchema.index({ department_id: 1 });
+teacherSchema.index({ organization_id: 1 });
 
 module.exports = mongoose.model('Teacher', teacherSchema);

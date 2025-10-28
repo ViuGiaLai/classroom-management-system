@@ -11,15 +11,24 @@ const classGradeSubmissionSchema = new mongoose.Schema({
     ref: 'Teacher',
     required: true,
   },
+  // Liên kết với tổ chức
+  organization_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+  },
+
   submitted_at: {
     type: Date,
     default: Date.now,
   },
+
   status: {
     type: String,
     enum: ['draft', 'pending_approval', 'approved', 'rejected'],
     default: 'draft',
   },
+
   approved_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -37,7 +46,9 @@ const classGradeSubmissionSchema = new mongoose.Schema({
   },
 });
 
+// Indexes (tối ưu tìm kiếm)
 classGradeSubmissionSchema.index({ class_id: 1 });
 classGradeSubmissionSchema.index({ status: 1 });
+classGradeSubmissionSchema.index({ organization_id: 1 });
 
 module.exports = mongoose.model('ClassGradeSubmission', classGradeSubmissionSchema);

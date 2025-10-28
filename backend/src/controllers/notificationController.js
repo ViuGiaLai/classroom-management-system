@@ -1,9 +1,10 @@
 const Notification = require('../models/notificationModel');
 
-// Tạo thông báo
+// [POST] Tạo thông báo — thuộc tổ chức
 exports.createNotification = async (req, res) => {
   try {
     const { sender_id, recipient_id, class_id, content } = req.body;
+    const organization_id = req.user.organization_id;
 
     if (!sender_id || !content) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -14,6 +15,7 @@ exports.createNotification = async (req, res) => {
       recipient_id,
       class_id,
       content,
+      organization_id,
     });
 
     res.status(201).json(notification);
@@ -22,12 +24,14 @@ exports.createNotification = async (req, res) => {
   }
 };
 
-// Lấy tất cả thông báo của user
+// [GET] Lấy tất cả thông báo của user — thuộc tổ chức
 exports.getNotificationsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    const organization_id = req.user.organization_id;
 
     const notifications = await Notification.find({
+      organization_id,
       $or: [{ recipient_id: userId }, { recipient_id: null }],
     })
       .populate('sender_id', 'full_name email')
@@ -40,13 +44,20 @@ exports.getNotificationsByUser = async (req, res) => {
   }
 };
 
-// Đánh dấu đã đọc
+// [PATCH] Đánh dấu đã đọc — thuộc tổ chức
 exports.markAsRead = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updated = await Notification.findByIdAndUpdate(id, { is_read: true }, { new: true });
+    const organization_id = req.user.organization_id;
 
-    if (!updated) return res.status(404).json({ message: 'Notification not found' });
+    const updated = await Notification.findOneAndUpdate(
+      { _id: req.params.id, organization_id },
+      { is_read: true },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Notification not found in your organization' });
+    }
 
     res.status(200).json(updated);
   } catch (error) {
@@ -54,14 +65,23 @@ exports.markAsRead = async (req, res) => {
   }
 };
 
-// Xóa thông báo
+// [DELETE] Xóa thông báo — thuộc tổ chức
 exports.deleteNotification = async (req, res) => {
   try {
-    const deleted = await Notification.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Notification not found' });
+    const organization_id = req.user.organization_id;
+
+    const deleted = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      organization_id,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Notification not found in your organization' });
+    }
 
     res.status(200).json({ message: 'Deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+

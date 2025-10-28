@@ -11,6 +11,12 @@ const attendanceSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  // Liên kết với tổ chức
+  organization_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+  },
   date: {
     type: Date,
     required: true,
@@ -31,6 +37,7 @@ const attendanceSchema = new mongoose.Schema({
 
 attendanceSchema.index({ class_id: 1, date: 1 });
 attendanceSchema.index({ student_id: 1 });
+attendanceSchema.index({ organization_id: 1 });
 attendanceSchema.index({ class_id: 1, student_id: 1, date: 1 }, { unique: true });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
