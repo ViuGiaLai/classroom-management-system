@@ -40,11 +40,7 @@ const courseSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-});
+}, { timestamps: true });
 
 // Index tương đương SQL
 courseSchema.index({ code: 1 });

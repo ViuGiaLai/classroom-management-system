@@ -8,6 +8,13 @@ const facultySchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
+  // mã khoa ex: Khoa CNTT
+  code: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
 
   // Liên kết với tổ chức
   organization_id: {

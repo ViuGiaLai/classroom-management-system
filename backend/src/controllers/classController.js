@@ -5,9 +5,13 @@ const redisClient = require('../config/redis');
 // [GET] /api/classes - Danh sách lớp học phần theo tổ chức
 exports.getAllClasses = async (req, res) => {
   try {
-    const organization_id = req.user.organization_id;
-    const cacheKey = `classes:all:${organization_id}`;
+    const organization_id = req.user?.organization_id || req.body.organization_id || req.query.organization_id;
 
+    if (!organization_id) {
+      return res.status(400).json({ message: 'organization_id is required' });
+    }
+
+    const cacheKey = `classes:all:${organization_id}`;
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
       return res.status(200).json(JSON.parse(cachedData));
@@ -18,7 +22,6 @@ exports.getAllClasses = async (req, res) => {
       .populate('lecturer_id', 'full_name');
 
     await redisClient.setEx(cacheKey, 600, JSON.stringify(classes));
-
     res.status(200).json(classes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -28,7 +31,11 @@ exports.getAllClasses = async (req, res) => {
 // [POST] /api/classes - Tạo lớp học phần thuộc tổ chức
 exports.createClass = async (req, res) => {
   try {
-    const organization_id = req.user.organization_id;
+    const organization_id = req.user?.organization_id || req.body.organization_id;
+
+    if (!organization_id) {
+      return res.status(400).json({ message: 'organization_id is required' });
+    }
 
     const newClass = await Class.create({
       ...req.body,
@@ -36,7 +43,6 @@ exports.createClass = async (req, res) => {
     });
 
     await redisClient.del(`classes:all:${organization_id}`);
-
     res.status(201).json(newClass);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -46,7 +52,11 @@ exports.createClass = async (req, res) => {
 // [GET] /api/classes/:id - Chi tiết lớp học phần thuộc tổ chức
 exports.getClassById = async (req, res) => {
   try {
-    const organization_id = req.user.organization_id;
+    const organization_id = req.user?.organization_id || req.query.organization_id;
+
+    if (!organization_id) {
+      return res.status(400).json({ message: 'organization_id is required' });
+    }
 
     const classItem = await Class.findOne({
       _id: req.params.id,
@@ -68,7 +78,11 @@ exports.getClassById = async (req, res) => {
 // [PUT] /api/classes/:id - Cập nhật lớp học phần thuộc tổ chức
 exports.updateClass = async (req, res) => {
   try {
-    const organization_id = req.user.organization_id;
+    const organization_id = req.user?.organization_id || req.body.organization_id;
+
+    if (!organization_id) {
+      return res.status(400).json({ message: 'organization_id is required' });
+    }
 
     const updatedClass = await Class.findOneAndUpdate(
       { _id: req.params.id, organization_id },
@@ -81,7 +95,6 @@ exports.updateClass = async (req, res) => {
     }
 
     await redisClient.del(`classes:all:${organization_id}`);
-
     res.status(200).json(updatedClass);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -91,7 +104,11 @@ exports.updateClass = async (req, res) => {
 // [DELETE] /api/classes/:id - Xóa lớp học phần thuộc tổ chức
 exports.deleteClass = async (req, res) => {
   try {
-    const organization_id = req.user.organization_id;
+    const organization_id = req.user?.organization_id || req.query.organization_id;
+
+    if (!organization_id) {
+      return res.status(400).json({ message: 'organization_id is required' });
+    }
 
     const deleted = await Class.findOneAndDelete({
       _id: req.params.id,
@@ -103,7 +120,6 @@ exports.deleteClass = async (req, res) => {
     }
 
     await redisClient.del(`classes:all:${organization_id}`);
-
     res.status(200).json({ message: 'Class deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -113,9 +129,13 @@ exports.deleteClass = async (req, res) => {
 // [GET] /api/classes/:id/students - Lấy sinh viên trong lớp thuộc tổ chức
 exports.getStudentsInClass = async (req, res) => {
   try {
-    const organization_id = req.user.organization_id;
-    const cacheKey = `class:${req.params.id}:students:${organization_id}`;
+    const organization_id = req.user?.organization_id || req.query.organization_id;
 
+    if (!organization_id) {
+      return res.status(400).json({ message: 'organization_id is required' });
+    }
+
+    const cacheKey = `class:${req.params.id}:students:${organization_id}`;
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
       return res.status(200).json(JSON.parse(cachedData));
@@ -127,10 +147,8 @@ exports.getStudentsInClass = async (req, res) => {
     }).select('student_code full_name faculty_id department_id');
 
     await redisClient.setEx(cacheKey, 300, JSON.stringify(students));
-
     res.status(200).json(students);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
