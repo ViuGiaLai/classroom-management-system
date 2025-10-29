@@ -63,8 +63,6 @@ const studentSchema = new mongoose.Schema(
   }
 );
 
-studentSchema.index({ user_id: 1 });
-studentSchema.index({ student_code: 1 });
 studentSchema.index({ faculty_id: 1 });
 studentSchema.index({ department_id: 1 });
 studentSchema.index({ organization_id: 1 });

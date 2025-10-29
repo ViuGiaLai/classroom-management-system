@@ -3,8 +3,6 @@ const mongoose = require('mongoose');
 const connectDB = async () => {
   try {
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       family: 4, // force IPv4 to avoid ECONNREFUSED on ::1 (IPv6) in some environments
     };

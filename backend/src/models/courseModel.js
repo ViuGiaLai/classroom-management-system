@@ -38,12 +38,10 @@ const courseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
     required: true,
-    index: true,
   },
 }, { timestamps: true });
 
 // Index tương đương SQL
-courseSchema.index({ code: 1 });
 courseSchema.index({ department_id: 1 });
 courseSchema.index({ organization_id: 1 });
 

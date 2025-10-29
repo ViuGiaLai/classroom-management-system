@@ -3,12 +3,21 @@ const { getSession } = require('../utils/sessionStore');
 const User = require('../models/userModel'); 
 
 const protect = async (req, res, next) => {
+  let token;
+
+  // lấy token đăng nhập (JWT) của người dùng
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } 
+  // Nếu không có token trong header, kiểm tra cookie
+  else if (req.cookies?.token) {
+    token = req.cookies.token;
+  }
+  
+  if (!token) {
     return res.status(401).json({ message: 'Unauthorized: No token provided' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

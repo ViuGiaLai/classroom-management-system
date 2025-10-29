@@ -89,9 +89,17 @@ exports.login = async (req, res) => {
     // Lưu token vào Redis để quản lý session đăng nhập
     await saveSession(user._id.toString(), token);
 
+  // giúp lưu token đăng nhập an toàn trong trình duyệt bằng cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true, 
+      sameSite: 'none',
+      maxAge: 24 * 60 * 60 * 1000,  
+      path: '/',
+    });
+
     res.status(200).json({
       message: 'Login successful',
-      token,
       user: {
         id: user._id,
         full_name: user.full_name,

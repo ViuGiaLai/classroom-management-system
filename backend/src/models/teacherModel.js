@@ -52,8 +52,6 @@ const teacherSchema = new mongoose.Schema(
   }
 );
 
-teacherSchema.index({ user_id: 1 });
-teacherSchema.index({ teacher_code: 1 });
 teacherSchema.index({ faculty_id: 1 });
 teacherSchema.index({ department_id: 1 });
 teacherSchema.index({ organization_id: 1 });

@@ -50,7 +50,6 @@ const requestSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
     required: true,
-    index: true,
   },
 
   // Thời điểm tạo yêu cầu

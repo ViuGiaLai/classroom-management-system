@@ -1,11 +1,19 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const http = require('http');             // ⚡ Thêm
-const { Server } = require('socket.io');  // ⚡ Thêm
+const http = require('http');            
+const { Server } = require('socket.io');
+const cookieParser = require('cookie-parser'); 
 const connectDB = require('./src/config/db');
 require('./src/config/redis'); // redis
 
+// Security middleware
+const helmet = require('helmet');
+
+// chống tấn công NoSQL Injection, phổ biến nhắm vào MongoDB.
+const sanitize = require('mongo-sanitize');
+
+const rateLimit = require('express-rate-limit');
 
 // Routes
 const organizationRoutes = require('./src/routes/organizationRoutes');
@@ -30,8 +38,37 @@ const discussionCommentRoutes = require('./src/routes/discussionCommentRoutes');
 const requestRoutes = require('./src/routes/requestsRoutes');
 
 const app = express();
-app.use(cors());
+
+// Giới hạn lượng request
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 phút
+  max: 100,                  // Tối đa 100 request
+  message: 'Too many requests, please try again later.',
+});
+
+// CORS configuration bảo mật, cookie và frontend giao tiếp với backend.
+const corsOptions = {
+  origin: true, 
+  credentials: true,  // gửi cookie và token.
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+// frontend http://localhost:3000 và backend http://localhost:5000
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
+app.use(generalLimiter);  
+  
+app.use(helmet());
+
+// Tự động làm sạch dữ liệu độc hại
+app.use((req, res, next) => {
+  req.body = sanitize(req.body);
+  req.query = sanitize(req.query);
+  req.params = sanitize(req.params);
+  next();
+});
 
 // Tạo HTTP server riêng để dùng với Socket.IO
 const server = http.createServer(app);
