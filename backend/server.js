@@ -39,6 +39,7 @@ const notificationRoutes = require('./src/routes/notificationRoutes');
 const discussionRoutes = require('./src/routes/discussionRoutes');
 const discussionCommentRoutes = require('./src/routes/discussionCommentRoutes');
 const requestRoutes = require('./src/routes/requestsRoutes');
+const uploadRoute = require('./src/routes/uploadRoute');
 
 const app = express();
 
@@ -151,6 +152,8 @@ app.use('/api/discussions', discussionRoutes);
 app.use('/api/discussion-comments', discussionCommentRoutes);
 // yêu cầu
 app.use('/api/requests', requestRoutes);
+// upload file
+app.use('/api/upload', uploadRoute);
 
 app.get('/', (req, res) => {
   res.send('LMS API is running...');

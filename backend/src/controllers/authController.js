@@ -107,6 +107,7 @@ exports.login = async (req, res) => {
         role: user.role,
         organization_id: user.organization_id,
       },
+      token, 
     });
   } catch (err) {
     console.error('Login error:', err.message);
