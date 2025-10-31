@@ -7,6 +7,9 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./src/config/db');
 require('./src/config/redis'); // redis
 
+const cron = require('node-cron'); 
+const backupMongo = require('./src/utils/backupMongo');
+
 // Security middleware
 const helmet = require('helmet');
 
@@ -61,6 +64,18 @@ app.use(cookieParser());
 app.use(generalLimiter);  
   
 app.use(helmet());
+
+// backupMongo chạy vào 23:00 tối Chủ Nhật, mỗi 2 tuần
+cron.schedule('0 23 * * 0', () => {
+  const currentWeek = Math.floor((new Date()).getDate() / 7);
+  // tự động sao lưu dữ liệu (backupMongo) 2 lần mỗi tháng
+  if (currentWeek % 2 === 1) {
+    console.log('Tự động backup MongoDB (2 tuần/lần)...');
+    backupMongo();
+  } else {
+    console.log(' Tuần này bỏ qua backup (lịch 2 tuần/lần)');
+  }
+});
 
 // Tự động làm sạch dữ liệu độc hại
 app.use((req, res, next) => {
