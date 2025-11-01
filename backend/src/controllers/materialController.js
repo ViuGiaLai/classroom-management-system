@@ -1,8 +1,8 @@
 const Material = require('../models/materialModel');
-const bucket = require('../config/firebase');
+const { supabase } = require('../config/supabase');
 const { v4: uuidv4 } = require('uuid');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
 exports.uploadMaterial = async (req, res) => {
   try {
@@ -13,37 +13,34 @@ exports.uploadMaterial = async (req, res) => {
     if (!file) return res.status(400).json({ message: 'No file uploaded' });
     if (!class_id || !title) return res.status(400).json({ message: 'Missing required fields' });
 
-    // Tạo tên file ngẫu nhiên
-    const fileName = `materials/${uuidv4()}-${file.originalname}`;
-    const filePath = file.path;
-
-    // Upload file lên Firebase Storage
-    await bucket.upload(filePath, {
-      destination: fileName,
-      metadata: {
+    const fileExt = path.extname(file.originalname); // lấy phần .pdf, .docx..
+    const fileName = `${uuidv4()}${fileExt}`;
+    
+    // Upload trực tiếp từ buffer lên Supabase
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('materials')
+      .upload(fileName, file.buffer, {
         contentType: file.mimetype,
-        metadata: {
-          firebaseStorageDownloadTokens: uuidv4(),
-        },
-      },
-    });
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
 
     // Lấy URL công khai
-    const file_url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
+    const { data: { publicUrl } } = supabase.storage
+      .from('materials')
+      .getPublicUrl(fileName);
 
-    // Lưu thông tin vào MongoDB
+    // Lưu vào MongoDB
     const material = await Material.create({
       class_id,
       title,
-      file_url,
+      file_url: publicUrl,
       file_type: file.mimetype,
-      file_size: file.size,
+      file_size: file.buffer.length,
       uploaded_by: req.user.id,
       organization_id,
     });
-
-    // Xoá file local sau khi upload xong
-    fs.unlinkSync(filePath);
 
     res.status(201).json(material);
   } catch (error) {
@@ -52,3 +49,28 @@ exports.uploadMaterial = async (req, res) => {
   }
 };
 
+// Lấy danh sách tài liệu theo lớp học
+exports.getMaterialsByClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const organization_id = req.user.organization_id;
+
+    const materials = await Material.find({
+      class_id: classId,
+      organization_id
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: materials.length,
+      data: materials
+    });
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách tài liệu',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
