@@ -18,6 +18,27 @@ exports.createNotification = async (req, res) => {
       organization_id,
     });
 
+  // Gửi realtime notification
+    const io = req.app.locals.io;
+
+    if (io) {
+      if (class_id) {
+        // Gửi thông báo cho tất cả thành viên trong lớp
+        console.log(`Sending notification to class ${class_id}`);
+        io.to(`class_${class_id}`).emit('receiveNotification', notification);
+      } else if (recipient_id) {
+        // Gửi cho người nhận cụ thể
+        console.log(`Sending notification to user ${recipient_id}`);
+        io.to(recipient_id.toString()).emit('receiveNotification', notification);
+      } else {
+        // Gửi cho tất cả mọi người 
+        console.log('Broadcasting notification to all users');
+        io.emit('receiveNotification', notification);
+      }
+    } else {
+      console.warn(' Socket.IO not initialized');
+    }
+
     res.status(201).json(notification);
   } catch (error) {
     res.status(500).json({ message: error.message });

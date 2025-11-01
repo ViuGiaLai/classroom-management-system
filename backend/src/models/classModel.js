@@ -20,7 +20,6 @@ const classSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: true,
-      index: true,
     },
     semester: {
       type: String,
@@ -50,6 +49,7 @@ const classSchema = new mongoose.Schema(
 
 // Indexes (tối ưu tìm kiếm)
 classSchema.index({ semester: 1, year: 1 });
+classSchema.index({ organization_id: 1 });
 
 const Class = mongoose.model('Class', classSchema);
 module.exports = Class;

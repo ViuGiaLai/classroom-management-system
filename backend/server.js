@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const http = require('http');            
+const http = require('http');
+const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const cookieParser = require('cookie-parser'); 
 const connectDB = require('./src/config/db');
@@ -86,29 +87,55 @@ app.use((req, res, next) => {
   next();
 });
 
-// Tạo HTTP server riêng để dùng với Socket.IO
+// socket.io
 const server = http.createServer(app);
-
-//  Khởi tạo Socket.IO server
 const io = new Server(server, {
-  cors: { origin: '*' },
+  cors: { origin: '*' }
 });
 
-// Lưu `io` vào app.locals để controller có thể dùng
 app.locals.io = io;
 
-// Khi client kết nối socket
-io.on('connection', (socket) => {
-  console.log('🔌 Client connected:', socket.id);
+// Lưu user nào đang kết nối
+const userSockets = new Map();
 
-  // Khi client join vào 1 room discussion
-  socket.on('joinDiscussion', (discussionId) => {
-    socket.join(discussionId);
-    console.log(`Client ${socket.id} joined discussion ${discussionId}`);
+io.use((socket, next) => {
+  try {
+
+    let token =
+      socket.handshake.auth?.token ||
+      socket.handshake.query?.token ||
+      socket.handshake.headers?.authorization?.split(' ')[1];
+
+    if (!token) return next(new Error('No token provided'));
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    socket.userRole = decoded.role;
+    console.log(`Authenticated: ${socket.userId} (${socket.userRole})`);
+    next();
+
+  } catch (err) {
+    console.error('Token invalid:', err.message);
+    next(new Error('Authentication failed'));
+  }
+});
+
+// Khi client kết nối thành công
+io.on('connection', (socket) => {
+  const { userId } = socket;
+  userSockets.set(userId, socket.id);
+  socket.join(userId);
+  console.log(`Connected: ${userId} (${socket.id})`);
+
+  socket.on('joinClassRooms', (classIds = []) => {
+    classIds.forEach(id => socket.join(`class_${id}`));
   });
+  
+  socket.on('joinDiscussion', id => socket.join(id));
 
   socket.on('disconnect', () => {
-    console.log(' Client disconnected:', socket.id);
+    userSockets.delete(userId);
+    console.log(` Disconnected: ${userId}`);
   });
 });
 
