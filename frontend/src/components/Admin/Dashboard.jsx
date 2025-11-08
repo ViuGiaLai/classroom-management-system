@@ -76,6 +76,7 @@ export default function Dashboard() {
             color="blue"
           />
           </a>
+          <a href="#courses" title="Xem chi tiết học phần">
           <StatCard
             title="Học phần"
             value="3"
@@ -98,6 +99,8 @@ export default function Dashboard() {
             }
             color="green"
           />
+          </a>
+          <a href="#classes" title="Xem chi tiết lớp học phần">
           <StatCard
             title="Lớp học phần"
             value="2"
@@ -120,6 +123,7 @@ export default function Dashboard() {
             }
             color="purple"
           />
+          </a>
         </div>
 
         {/* Phần các khối thông tin chi tiết */}
@@ -134,6 +138,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="#departments" title="Xem chi tiết khoa">
                 <StatCard
                   title="Khoa"
                   value="3"
@@ -156,6 +161,7 @@ export default function Dashboard() {
                   }
                   color="orange"
                 />
+                </a>
               </div>
             </div>
 
