@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './components/LoginPage/LoginPage';
+import RegisterPage from './components/RegisterPage/RegisterPage';
 import Dashboard from './components/Admin/Dashboard';
 import AdminLayout from './components/Admin/Layout';
 import PrivateRoute from './common/PrivateRoute'; 
@@ -15,6 +16,9 @@ function App() {
 
         {/* Trang đăng nhập */}
         <Route path="/login" element={<LoginPage />} />
+
+         {/* Trang đăng ký */}
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* Các route dành cho admin - bảo vệ bằng PrivateRoute */}
         <Route
