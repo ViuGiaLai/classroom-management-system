@@ -18,62 +18,69 @@ exports.registerOrganization = async (req, res) => {
       admin_password,
     } = req.body;
 
-    if (!org_email || !admin_email || !admin_password) {
-      return res.status(400).json({ message: 'Email và mật khẩu không được để trống' });
-    }
-
-    // Chuẩn hóa email
-    const orgEmailNormalized = org_email.trim().toLowerCase();
-    const adminEmailNormalized = admin_email.trim().toLowerCase();
-
     // Kiểm tra email tổ chức trùng
-    const existingOrg = await Organization.findOne({ email: orgEmailNormalized });
+    const existingOrg = await Organization.findOne({ email: org_email });
     if (existingOrg) {
       return res.status(400).json({ message: 'Email tổ chức đã tồn tại' });
+    }
+
+    // --- NEW: kiểm tra email admin trước khi tạo organization ---
+    const existingAdmin = await User.findOne({ email: admin_email });
+    if (existingAdmin) {
+      return res.status(400).json({ message: 'Email admin đã tồn tại' });
     }
 
     // Tạo tổ chức
     const organization = new Organization({
       name: org_name,
-      email: orgEmailNormalized,
+      email: org_email,
       phone: org_phone,
       address: org_address,
       description,
     });
     await organization.save();
 
-    // Mã hóa mật khẩu admin
-    const hashedPassword = await bcrypt.hash(admin_password, 10);
+    // Mã hóa mật khẩu admin và tạo tài khoản admin
+    try {
+      const hashedPassword = await bcrypt.hash(admin_password, 10);
 
-    // Tạo tài khoản admin
-    const adminUser = new User({
-      full_name: admin_name,
-      email: adminEmailNormalized,
-      password_hash: hashedPassword,
-      role: 'admin',
-      organization_id: organization._id,
-    });
-    await adminUser.save();
-
-    // Tạo token JWT
-    const token = generateToken(adminUser._id, adminUser.role, organization._id);
-
-    // Lưu session vào Redis (tùy chọn)
-    await saveSession(adminUser._id.toString(), token);
-
-    res.status(201).json({
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: adminUser._id,
-        full_name: adminUser.full_name,
-        email: adminUser.email,
-        role: adminUser.role,
+      const adminUser = new User({
+        full_name: admin_name,
+        email: admin_email,
+        password_hash: hashedPassword,
+        role: 'admin',
         organization_id: organization._id,
-      },
-    });
+      });
+      await adminUser.save();
+
+      // Tạo token JWT
+      const token = generateToken(adminUser._id, adminUser.role, organization._id);
+
+      // Lưu session vào Redis (tùy chọn)
+      await saveSession(adminUser._id.toString(), token);
+
+      return res.status(201).json({
+        message: 'User registered successfully',
+        token,
+        user: {
+          id: adminUser._id,
+          full_name: adminUser.full_name,
+          email: adminUser.email,
+          role: adminUser.role,
+          organization_id: organization._id,
+        },
+      });
+    } catch (adminErr) {
+      // Nếu tạo admin thất bại → rollback: xóa organization vừa tạo để tránh dữ liệu không nhất quán
+      try {
+        await Organization.deleteOne({ _id: organization._id });
+        console.warn('Rolled back organization due to admin creation failure:', organization._id);
+      } catch (cleanupErr) {
+        console.error('Failed to rollback organization after admin creation error:', cleanupErr);
+      }
+      return res.status(400).json({ message: adminErr.message || 'Lỗi khi tạo tài khoản admin' });
+    }
   } catch (err) {
-    console.error('Register error:', err.message);
     res.status(400).json({ error: err.message });
   }
 };
@@ -83,13 +90,7 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email và mật khẩu không được để trống' });
-    }
-
-    const emailNormalized = email.trim().toLowerCase();
-
-    const user = await User.findOne({ email: emailNormalized });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -101,14 +102,15 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user._id, user.role, user.organization_id);
 
+    // Lưu token vào Redis để quản lý session đăng nhập
     await saveSession(user._id.toString(), token);
 
-    // Lưu token vào cookie
+  // giúp lưu token đăng nhập an toàn trong trình duyệt bằng cookie
     res.cookie('token', token, {
       httpOnly: true,
-      secure: true,
+      secure: true, 
       sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,  
       path: '/',
     });
 
@@ -121,7 +123,7 @@ exports.login = async (req, res) => {
         role: user.role,
         organization_id: user.organization_id,
       },
-      token,
+      token, 
     });
   } catch (err) {
     console.error('Login error:', err.message);
@@ -142,3 +144,4 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
