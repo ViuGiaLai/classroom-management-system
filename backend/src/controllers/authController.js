@@ -18,8 +18,16 @@ exports.registerOrganization = async (req, res) => {
       admin_password,
     } = req.body;
 
+    if (!org_email || !admin_email || !admin_password) {
+      return res.status(400).json({ message: 'Email và mật khẩu không được để trống' });
+    }
+
+    // Chuẩn hóa email
+    const orgEmailNormalized = org_email.trim().toLowerCase();
+    const adminEmailNormalized = admin_email.trim().toLowerCase();
+
     // Kiểm tra email tổ chức trùng
-    const existingOrg = await Organization.findOne({ email: org_email });
+    const existingOrg = await Organization.findOne({ email: orgEmailNormalized });
     if (existingOrg) {
       return res.status(400).json({ message: 'Email tổ chức đã tồn tại' });
     }
@@ -27,7 +35,7 @@ exports.registerOrganization = async (req, res) => {
     // Tạo tổ chức
     const organization = new Organization({
       name: org_name,
-      email: org_email,
+      email: orgEmailNormalized,
       phone: org_phone,
       address: org_address,
       description,
@@ -40,7 +48,7 @@ exports.registerOrganization = async (req, res) => {
     // Tạo tài khoản admin
     const adminUser = new User({
       full_name: admin_name,
-      email: admin_email,
+      email: adminEmailNormalized,
       password_hash: hashedPassword,
       role: 'admin',
       organization_id: organization._id,
@@ -65,6 +73,7 @@ exports.registerOrganization = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error('Register error:', err.message);
     res.status(400).json({ error: err.message });
   }
 };
@@ -74,7 +83,13 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email và mật khẩu không được để trống' });
+    }
+
+    const emailNormalized = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email: emailNormalized });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -86,15 +101,14 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user._id, user.role, user.organization_id);
 
-    // Lưu token vào Redis để quản lý session đăng nhập
     await saveSession(user._id.toString(), token);
 
-  // giúp lưu token đăng nhập an toàn trong trình duyệt bằng cookie
+    // Lưu token vào cookie
     res.cookie('token', token, {
       httpOnly: true,
-      secure: true, 
+      secure: true,
       sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000,  
+      maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
 
@@ -107,7 +121,7 @@ exports.login = async (req, res) => {
         role: user.role,
         organization_id: user.organization_id,
       },
-      token, 
+      token,
     });
   } catch (err) {
     console.error('Login error:', err.message);
@@ -128,4 +142,3 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
