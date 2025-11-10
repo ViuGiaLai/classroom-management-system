@@ -15,12 +15,12 @@ function StatCard({ title, value, subtitle, icon, color = "blue" }) {
       <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
-          <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider no-underline">
             {title}
           </div>
-          <div className="text-3xl font-bold text-gray-900 mt-2">{value}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-2 no-underline">{value}</div>
           {subtitle && (
-            <div className="text-sm text-gray-600 mt-1">{subtitle}</div>
+            <div className="text-sm text-gray-600 mt-1 no-underline">{subtitle}</div>
           )}
         </div>
         <div
@@ -51,7 +51,8 @@ export default function Dashboard() {
         </div>
 
         {/* Phần các thẻ thống kê chính */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">           
+          <a href="#users" title="Xem chi tiết người dùng" className="block text-current no-underline hover:no-underline focus:no-underline decoration-transparent">
           <StatCard
             title="Tổng người dùng"
             value="5"
@@ -74,6 +75,8 @@ export default function Dashboard() {
             }
             color="blue"
           />
+          </a>
+          <a href="#courses" title="Xem chi tiết học phần">
           <StatCard
             title="Học phần"
             value="3"
@@ -96,6 +99,8 @@ export default function Dashboard() {
             }
             color="green"
           />
+          </a>
+          <a href="#classes" title="Xem chi tiết lớp học phần">
           <StatCard
             title="Lớp học phần"
             value="2"
@@ -118,6 +123,7 @@ export default function Dashboard() {
             }
             color="purple"
           />
+          </a>
         </div>
 
         {/* Phần các khối thông tin chi tiết */}
@@ -132,6 +138,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="#departments" title="Xem chi tiết khoa">
                 <StatCard
                   title="Khoa"
                   value="3"
@@ -154,6 +161,7 @@ export default function Dashboard() {
                   }
                   color="orange"
                 />
+                </a>
               </div>
             </div>
 
