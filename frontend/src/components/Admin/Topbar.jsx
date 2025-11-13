@@ -1,4 +1,17 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function Topbar({ title = "Tổng quan" }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Logic đăng xuất: xóa token và chuyển hướng
+    localStorage.removeItem("userToken"); // Giả định: Xóa token
+    localStorage.removeItem("userInfo");  // Giả định: Xóa thông tin người dùng
+    navigate("/login"); // Chuyển hướng về trang đăng nhập
+  };
+
   return (
     <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 shadow-sm">
       {/* Logo and Page Title Section - Now on the left */}
@@ -82,7 +95,7 @@ export default function Topbar({ title = "Tổng quan" }) {
         </div>
       </div>
 
-      {/* Right Section - Only notification and user profile */}
+      {/* Right Section - Notification and User Profile with Dropdown */}
       <div className="flex items-center gap-4">
         {/* Notification Bell */}
         <button
@@ -106,15 +119,50 @@ export default function Topbar({ title = "Tổng quan" }) {
           <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
         </button>
 
-        {/* User Profile */}
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-blue-600 text-white grid place-items-center text-sm font-medium">
-            A
+        {/* User Profile / Admin with Hover Dropdown */}
+        <div
+          className="relative"
+          onMouseEnter={() => setIsDropdownOpen(true)}
+          onMouseLeave={() => setIsDropdownOpen(false)}
+        >
+          <div className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-gray-50 transition-colors">
+            <div className="h-8 w-8 rounded-full bg-blue-600 text-white grid place-items-center text-sm font-medium flex-shrink-0">
+              A
+            </div>
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span className="text-xs font-medium text-gray-900">admin</span>
+              <span className="text-xs text-gray-500">Quản trị viên</span>
+            </div>
           </div>
-          <div className="hidden sm:flex flex-col leading-tight">
-            <span className="text-xs font-medium text-gray-900">admin</span>
-            <span className="text-xs text-gray-500">Quản trị viên</span>
-          </div>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl bg-white ring-1 ring-black ring-opacity-5 z-20 origin-top-right transition-all duration-200 ease-out">
+              <div className="py-1">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  role="menuitem"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 mr-3 text-red-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
+                  Đăng xuất
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
