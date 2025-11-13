@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
 const Organization = require('../models/organizationModel');
 const generateToken = require('../utils/generateToken');
-const { saveSession } = require('../utils/sessionStore');
+const { saveSession, deleteSession } = require('../utils/sessionStore');
 
 // [POST] /api/auth/register - Tạo tổ chức và tài khoản admin
 exports.registerOrganization = async (req, res) => {
@@ -142,6 +142,27 @@ exports.getMe = async (req, res) => {
   } catch (err) {
     console.error('GetMe error:', err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// [POST] /api/auth/logout - Đăng xuất
+exports.logout = async (req, res) => {
+  try {
+    // Xóa session từ Redis
+    await deleteSession(req.user.id);
+
+    // Xóa cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
+
+    res.status(200).json({ message: 'Logout successful' });
+  } catch (err) {
+    console.error('Logout error:', err.message);
+    res.status(500).json({ message: 'Server error during logout' });
   }
 };
 
