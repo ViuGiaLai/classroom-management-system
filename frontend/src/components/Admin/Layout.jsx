@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Dashboard from "./Dashboard";
@@ -13,17 +13,11 @@ import GradesPage from "./Grades";
 import ReportsPage from "./Reports";
 
 export default function AdminLayout() {
-  const [hash, setHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash.replace('#', '') : 'overview'));
+  const location = useLocation();
 
-  useEffect(() => {
-    const onHash = () => setHash(window.location.hash.replace('#', '') || 'overview');
-    window.addEventListener('hashchange', onHash);
-    if (!window.location.hash) window.location.hash = '#overview';
-    return () => window.removeEventListener('hashchange', onHash);
-  }, []);
-
-  const title = useMemo(() => {
-    switch (hash) {
+  const getTitle = (pathname) => {
+    const path = pathname.split('/').pop();
+    switch (path) {
       case 'users':
         return 'Người dùng';
       case 'students':
@@ -42,44 +36,28 @@ export default function AdminLayout() {
         return 'Quản lý điểm';
       case 'reports':
         return 'Báo cáo';
-      case 'overview':
+      case 'dashboard':
       default:
         return 'Tổng quan';
     }
-  }, [hash]);
+  };
 
-  const content = useMemo(() => {
-    switch (hash) {
-      case 'users':
-        return <UsersPage />;
-      case 'students':
-        return <StudentsPage />;
-      case 'lecturers':
-        return <LecturersPage />;
-      case 'departments':
-        return <DepartmentsPage />;
-      case 'majors':
-        return <MajorsPage />;
-      case 'classes':
-        return <ClassesPage />;
-      case 'courses':
-        return <CoursesPage />;
-      case 'grades':
-        return <GradesPage />;
-      case 'reports':
-        return <ReportsPage />;
-      case 'overview':
-      default:
-        return <Dashboard />;
-    }
-  }, [hash]);
+  const title = getTitle(location.pathname);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Topbar title={title} />
-      <div className="flex">
-        <Sidebar activeKey={hash} />
-        <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8">{content}</main>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar activeKey={location.pathname.split('/').pop()} />
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1">
+        {/* Topbar */}
+        <Topbar title={title} />
+
+        {/* Page Content */}
+        <main className="flex-1 p-4 overflow-y-auto">
+          <Outlet />
+        </main>
       </div>
     </div>
   );
