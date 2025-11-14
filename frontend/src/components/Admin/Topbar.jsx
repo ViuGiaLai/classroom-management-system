@@ -1,105 +1,60 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import LogoIcon from "../../assets/logo_banary.png";
 
-export default function Topbar({ title = "Tổng quan" }) {
+export default function Topbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    // Bind the event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const toggleDropdown = (e) => {
+    e.stopPropagation();
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
   const handleLogout = () => {
-    // Logic đăng xuất: xóa token và chuyển hướng
-    localStorage.removeItem("userToken"); // Giả định: Xóa token
-    localStorage.removeItem("userInfo");  // Giả định: Xóa thông tin người dùng
-    navigate("/login"); // Chuyển hướng về trang đăng nhập
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("userInfo");
+    navigate("/login");
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 shadow-sm">
-      {/* Logo and Page Title Section - Now on the left */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-blue-600 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-gray-900">LMS</span>
-            <span className="text-xs text-gray-500">
-              Learning Management System
-            </span>
-          </div>
-        </div>
-        
-        {/* Page Title - Now with the logo */}
-        <div className="hidden md:block">
-          <h1 className="text-sm text-gray-500 font-medium">{title}</h1>
-        </div>
-        
-        <button
-          className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-50 transition-colors"
-          aria-label="Open Sidebar"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            className="h-6 w-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-      </div>
+    <header className="h-16 bg-emerald-600 text-white shadow-md flex items-center justify-between px-6">
 
-      {/* Center Search Bar */}
-      <div className="hidden md:flex flex-1 max-w-lg mx-8">
-        <div className="relative w-full">
-          <input
-            type="text"
-            placeholder="Tìm kiếm..."
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
-          />
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg
-              className="h-5 w-5 text-gray-400"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
-            ⌘K
-          </span>
+      {/* Left - Logo + Name */}
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl overflow-hidden shadow-md bg-white/10 flex items-center justify-center">
+          <img src={LogoIcon} alt="Logo" className="h-full w-full object-cover" />
+        </div>
+
+        <div className="flex flex-col leading-tight">
+          <span className="text-base font-bold">LMS</span>
+          <span className="text-xs opacity-90">Learning Management System</span>
         </div>
       </div>
 
-      {/* Right Section - Notification and User Profile with Dropdown */}
-      <div className="flex items-center gap-4">
-        {/* Notification Bell */}
+      {/* Right - Notifications + User Menu */}
+      <div className="flex items-center gap-6">
+
+        {/* Notification */}
         <button
-          className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+          className="relative p-2 rounded-lg hover:bg-white/20 transition"
           aria-label="Notifications"
         >
           <svg
@@ -113,40 +68,38 @@ export default function Topbar({ title = "Tổng quan" }) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"
+              d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14V11a6 6 0 1 0-12 0v3c0 .53-.21 1.05-.6 1.45L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"
             />
           </svg>
           <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
         </button>
 
-        {/* User Profile / Admin with Hover Dropdown */}
-        <div
-          className="relative"
-          onMouseEnter={() => setIsDropdownOpen(true)}
-          onMouseLeave={() => setIsDropdownOpen(false)}
-        >
-          <div className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-gray-50 transition-colors">
-            <div className="h-8 w-8 rounded-full bg-blue-600 text-white grid place-items-center text-sm font-medium flex-shrink-0">
+        {/* Profile */}
+        <div className="relative" ref={dropdownRef}>
+          <div 
+            className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-white/20 transition"
+            onClick={toggleDropdown}
+          >
+            <div className="h-9 w-9 rounded-full bg-blue-600 grid place-items-center text-sm font-semibold">
               A
             </div>
-            <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-xs font-medium text-gray-900">admin</span>
-              <span className="text-xs text-gray-500">Quản trị viên</span>
+            <div className="hidden sm:flex flex-col leading-tight text-left">
+              <span className="text-sm font-semibold text-white">admin</span>
+              <span className="text-xs text-white/80">Quản trị viên</span>
             </div>
           </div>
 
-          {/* Dropdown Menu */}
+          {/* Dropdown */}
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl bg-white ring-1 ring-black ring-opacity-5 z-20 origin-top-right transition-all duration-200 ease-out">
+            <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-xl bg-white text-gray-700 z-20 animate-fadein origin-top-right">
               <div className="py-1">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                  role="menuitem"
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-3 text-red-500"
+                    className="h-5 w-5 mr-3"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
