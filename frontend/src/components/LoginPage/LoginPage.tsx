@@ -24,10 +24,14 @@ export default function LoginPage({
 
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { token } = response.data;
+      const { token, user } = response.data;
 
+      // Store token and user data in localStorage
       localStorage.setItem('token', token);
-      console.log('Login successful, token:', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('role', user.role);
+      localStorage.setItem('userId', user.id);
+      console.log('Login successful, token:', token, 'role:', user.role);
 
       // toast.success('Đăng nhập thành công!', {
       //   position: 'top-center',
@@ -36,8 +40,21 @@ export default function LoginPage({
 
       if (onLogin) onLogin(email, password);
 
+      // Redirect based on user role
       setTimeout(() => {
-        window.location.href = '/admin/dashboard';
+        switch (user.role) {
+          case 'admin':
+            window.location.href = '/admin/dashboard';
+            break;
+          case 'teacher':
+            window.location.href = '/teacher';
+            break;
+          case 'student':
+            window.location.href = '/student';
+            break;
+          default:
+            window.location.href = '/';
+        }
       }, 1500);
 
     } catch (error: any) {
