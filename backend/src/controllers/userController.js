@@ -2,7 +2,7 @@ const User = require('../models/userModel');
 const Organization = require('../models/organizationModel');
 const bcrypt = require('bcrypt');
 
-// [POST] /api/users - Tạo người dùng mới
+// [POST] /api/users - Tạo người dùng mới (chỉ trong tổ chức của admin)
 exports.createUser = async (req, res) => {
   try {
     const {
@@ -15,19 +15,15 @@ exports.createUser = async (req, res) => {
       phone,
       address,
       avatar_url,
-      organization_id,
     } = req.body;
+
+    // Tự động sử dụng organization_id của admin đang đăng nhập
+    const organization_id = req.user.organization_id;
 
     // Kiểm tra email trùng
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
-    }
-
-    // Kiểm tra tổ chức tồn tại
-    const organization = await Organization.findById(organization_id);
-    if (!organization) {
-      return res.status(400).json({ message: 'Invalid organization ID' });
     }
 
     // Mã hóa mật khẩu
@@ -56,13 +52,11 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// [GET] /api/users - Lấy danh sách tất cả người dùng (có thể lọc theo tổ chức)
+// [GET] /api/users - Lấy danh sách tất cả người dùng (chỉ theo tổ chức của admin)
 exports.getAllUsers = async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.organization_id) {
-      filter.organization_id = req.query.organization_id;
-    }
+    // Chỉ lấy người dùng thuộc tổ chức của admin đang đăng nhập
+    const filter = { organization_id: req.user.organization_id };
 
     const users = await User.find(filter)
       .select('-password_hash')
@@ -75,7 +69,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// [PUT] /api/users/:id - Cập nhật thông tin người dùng
+// [PUT] /api/users/:id - Cập nhật thông tin người dùng (chỉ trong tổ chức của admin)
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -92,8 +86,13 @@ exports.updateUser = async (req, res) => {
       organization_id,
     } = req.body;
 
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Chỉ cập nhật người dùng thuộc tổ chức của admin đang đăng nhập
+    const user = await User.findOne({
+      _id: id,
+      organization_id: req.user.organization_id
+    });
+
+    if (!user) return res.status(404).json({ message: 'User not found in your organization' });
 
     // Nếu có tổ chức mới, kiểm tra hợp lệ
     if (organization_id && organization_id !== user.organization_id.toString()) {
@@ -126,12 +125,18 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// [DELETE] /api/users/:id - Xóa người dùng
+// [DELETE] /api/users/:id - Xóa người dùng (chỉ trong tổ chức của admin)
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await User.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: 'User not found' });
+
+    // Chỉ xóa người dùng thuộc tổ chức của admin đang đăng nhập
+    const deleted = await User.findOneAndDelete({
+      _id: id,
+      organization_id: req.user.organization_id
+    });
+
+    if (!deleted) return res.status(404).json({ message: 'User not found in your organization' });
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error('Error deleting user:', err.message);
