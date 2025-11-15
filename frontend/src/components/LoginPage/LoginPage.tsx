@@ -4,7 +4,7 @@ import { RightPanel } from './RightPanel';
 import type { LoginPageProps } from './types';
 import { mockLoginPageData } from './loginPageMockData';
 // @ts-ignore
-import api from '../../api/axiosConfig';
+import { login } from '@/utils/auth';
 
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -23,14 +23,9 @@ export default function LoginPage({
     setIsLoading(true); // Bắt đầu loading
 
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { token, user } = response.data;
+      const response = await login(email, password);
+      const { token, user } = response;
 
-      // Store token and user data in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('role', user.role);
-      localStorage.setItem('userId', user.id);
       console.log('Login successful, token:', token, 'role:', user.role);
 
       // toast.success('Đăng nhập thành công!', {
