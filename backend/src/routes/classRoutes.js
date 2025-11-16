@@ -1,12 +1,14 @@
 const express = require('express');
-const router = express.Router();
+const { protect, authorize } = require('../middlewares/authMiddleware');
 const classController = require('../controllers/classController');
 
-router.get('/', classController.getAllClasses);
-router.post('/', classController.createClass);
-router.get('/:id', classController.getClassById);
-router.put('/:id', classController.updateClass);
-router.delete('/:id', classController.deleteClass);
-router.get('/:id/students', classController.getStudentsInClass);
+const router = express.Router();
+
+router.get('/', protect, classController.getAllClasses);
+router.post('/', protect, authorize('admin', 'teacher'), classController.createClass);
+router.get('/:id', protect, classController.getClassById);
+router.put('/:id', protect, authorize('admin', 'teacher'), classController.updateClass);
+router.delete('/:id', protect, authorize('admin'), classController.deleteClass);
+router.get('/:id/students', protect, classController.getStudentsInClass);
 
 module.exports = router;

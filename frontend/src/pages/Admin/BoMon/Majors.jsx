@@ -1,42 +1,42 @@
-import { useMemo, useState } from "react";
-
-const seedMajors = [
-  {
-    id: "SE",
-    name: "Kỹ thuật Phần mềm",
-    department: "KTPM",
-    head: "TS. Trần B",
-    courses: 34,
-    students: 320,
-    status: "Đang tuyển",
-  },
-  {
-    id: "IT",
-    name: "Công nghệ Thông tin",
-    department: "CNTT",
-    head: "PGS. TS. Nguyễn A",
-    courses: 28,
-    students: 410,
-    status: "Đang tuyển",
-  },
-  {
-    id: "IS",
-    name: "Hệ thống Thông tin",
-    department: "HTTT",
-    head: "ThS. Lê C",
-    courses: 24,
-    students: 210,
-    status: "Tạm dừng",
-  },
-];
+import { useMemo, useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { getMajors, deleteMajor, updateMajor, createMajor } from "@/api/majorApi";
+import { BookOutlined, PhoneOutlined, MailOutlined, TeamOutlined, UserOutlined, ApartmentOutlined, CheckCircleOutlined, StopOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import MajorModal from "./components/MajorModal";
+import MajorForm from "./components/MajorForm";
 
 export default function MajorsPage() {
   const [query, setQuery] = useState("");
   const [dept, setDept] = useState("Tất cả");
   const [status, setStatus] = useState("Tất cả");
+  const [majors, setMajors] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [currentMajor, setCurrentMajor] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const data = useMemo(() => {
-    return seedMajors.filter((m) => {
+  // Load majors from API
+  useEffect(() => {
+    const loadMajors = async () => {
+      try {
+        setLoading(true);
+        const response = await getMajors();
+        setMajors(response.data || []);
+      } catch (error) {
+        toast.error("Không thể tải danh sách chuyên ngành");
+        console.error("Error loading majors:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMajors();
+  }, []);
+
+  const filteredData = useMemo(() => {
+    return majors.filter((m) => {
       const q = query.toLowerCase();
       const matchQuery = q
         ? m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)
@@ -45,7 +45,7 @@ export default function MajorsPage() {
       const matchStatus = status === "Tất cả" ? true : m.status === status;
       return matchQuery && matchDept && matchStatus;
     });
-  }, [query, dept, status]);
+  }, [majors, query, dept, status]);
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -56,6 +56,99 @@ export default function MajorsPage() {
       default:
         return "bg-gray-50 text-gray-700 ring-gray-600/20";
     }
+  };
+
+  const handleDelete = async (majorId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa chuyên ngành này?")) {
+      return;
+    }
+
+    try {
+      await deleteMajor(majorId);
+      toast.success("Xóa chuyên ngành thành công");
+      // Reload majors list
+      const response = await getMajors();
+      setMajors(response.data || []);
+    } catch (error) {
+      toast.error("Không thể xóa chuyên ngành");
+      console.error("Error deleting major:", error);
+    }
+  };
+
+  const handleEdit = (major) => {
+    setIsEdit(true);
+    setCurrentMajor(major);
+    setFormData({
+      name: major.name || '',
+      code: major.code || '',
+      faculty_id: major.faculty_id || '',
+      head_of_department: major.head_of_department || '',
+      phone: major.phone || '',
+      email: major.email || '',
+      address: major.address || '',
+      lecturer_count: major.lecturer_count || '',
+      student_count: major.student_count || '',
+      status: major.status || 'Đang hoạt động',
+      description: major.description || ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleAdd = () => {
+    setIsEdit(false);
+    setCurrentMajor(null);
+    setFormData({
+      name: '',
+      code: '',
+      faculty_id: '',
+      head_of_department: '',
+      phone: '',
+      email: '',
+      address: '',
+      lecturer_count: '',
+      student_count: '',
+      status: 'Đang hoạt động',
+      description: ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      
+      // Validate required fields
+      if (!formData.name || !formData.code || !formData.faculty_id) {
+        toast.error('Vui lòng điền đầy đủ tên, mã bộ môn và khoa');
+        return;
+      }
+
+      if (isEdit && currentMajor) {
+        await updateMajor(currentMajor.id, formData);
+        toast.success('Cập nhật bộ môn thành công');
+      } else {
+        await createMajor(formData);
+        toast.success('Tạo bộ môn thành công');
+      }
+
+      // Reload data
+      const response = await getMajors();
+      setMajors(response.data || []);
+      
+      setModalOpen(false);
+      setFormData({});
+    } catch (error) {
+      toast.error(isEdit ? 'Không thể cập nhật bộ môn' : 'Không thể tạo bộ môn');
+      console.error('Error saving major:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setFormData({});
+    setCurrentMajor(null);
   };
 
   return (
@@ -72,21 +165,8 @@ export default function MajorsPage() {
               Danh sách chuyên ngành, khoa, số học phần và sinh viên
             </p>
           </div>
-          <button className="mt-4 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+          <button onClick={handleAdd} className="mt-4 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <PlusOutlined className="h-5 w-5 mr-2" />
             Thêm chuyên ngành
           </button>
         </div>
@@ -96,6 +176,7 @@ export default function MajorsPage() {
           <div className="p-6 border-b border-gray-200 bg-gray-50/50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative md:col-span-2">
+                <SearchOutlined className="absolute left-4 top-3.5 text-gray-400 pointer-events-none z-10" />
                 <input
                   type="text"
                   value={query}
@@ -103,20 +184,6 @@ export default function MajorsPage() {
                   placeholder="Tìm theo mã, tên chuyên ngành..."
                   className="w-full rounded-xl border-gray-300 bg-white pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                 />
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
               </div>
               <select
                 value={dept}
@@ -168,7 +235,7 @@ export default function MajorsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.map((m) => (
+                {filteredData.map((m) => (
                   <tr
                     key={m.id}
                     className="hover:bg-gray-50/80 transition-colors duration-150"
@@ -197,39 +264,13 @@ export default function MajorsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1.5 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
-                        </svg>
+                        <BookOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
                         {m.courses}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1.5 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                          />
-                        </svg>
+                        <TeamOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
                         {m.students}
                       </div>
                     </td>
@@ -244,42 +285,18 @@ export default function MajorsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
+                        onClick={() => handleEdit(m)}
                         className="text-blue-600 hover:text-blue-800 mr-4 transition-colors duration-150"
                         title="Chỉnh sửa"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
+                        <EditOutlined className="h-5 w-5" />
                       </button>
                       <button
+                        onClick={() => handleDelete(m.id)}
                         className="text-red-600 hover:text-red-800 transition-colors duration-150"
                         title="Xóa"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        <DeleteOutlined className="h-5 w-5" />
                       </button>
                     </td>
                   </tr>
@@ -288,6 +305,20 @@ export default function MajorsPage() {
             </table>
           </div>
         </div>
+        
+        <MajorModal
+          isOpen={modalOpen}
+          onClose={closeModal}
+          title={isEdit ? "Chỉnh sửa chuyên ngành" : "Thêm chuyên ngành mới"}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+        >
+          <MajorForm 
+            formData={formData} 
+            setFormData={setFormData}
+            isEdit={isEdit}
+          />
+        </MajorModal>
       </div>
     </div>
   );
