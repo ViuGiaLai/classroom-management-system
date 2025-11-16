@@ -2,15 +2,15 @@ import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Dashboard from "./Dashboard";
-import UsersPage from "./Users";
-import StudentsPage from "./Students";
-import LecturersPage from "./Lecturers";
-import DepartmentsPage from "./Departments";
-import MajorsPage from "./Majors";
-import ClassesPage from "./Classes";
-import CoursesPage from "./Courses";
-import GradesPage from "./Grades";
-import ReportsPage from "./Reports";
+import UsersPage from "./Users/Users";
+import StudentsPage from "./SinhVien/Students";
+import LecturersPage from "./GiangVien/Lecturers";
+import DepartmentsPage from "./Khoa/Departments";
+import MajorsPage from "./ChuyenNganh/Majors";
+import ClassesPage from "./LopHocPhan/Classes";
+import CoursesPage from "./HocPhan/Courses";
+import GradesPage from "./QuanLyDiem/Grades";
+import ReportsPage from "./BaoCao/Reports";
 
 export default function AdminLayout() {
   const location = useLocation();
