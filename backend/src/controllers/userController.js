@@ -4,8 +4,11 @@ const Student = require('../models/studentModel');
 const Teacher = require('../models/teacherModel');
 const bcrypt = require('bcrypt');
 
-// [POST] /api/users - Tạo người dùng mới (chỉ trong tổ chức của admin)
+// [POST] /api/users - Tạo người dùng mới (bao gồm student full info)
 exports.createUser = async (req, res) => {
+  const session = await User.startSession(); // Dùng transaction nếu MongoDB hỗ trợ
+  session.startTransaction();
+
   try {
     const {
       full_name,
@@ -17,77 +20,101 @@ exports.createUser = async (req, res) => {
       phone,
       address,
       avatar_url,
+
+      // Thông tin student nếu role = student
+      administrative_class,
+      faculty_id,
+      department_id,
+      advisor_id,
+      status,
+      year_of_admission,
+      academic_year,
     } = req.body;
 
-    // Tự động sử dụng organization_id của admin đang đăng nhập
     const organization_id = req.user.organization_id;
 
     // Kiểm tra email trùng
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Email already exists' });
     }
 
     // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      full_name,
-      email,
-      password_hash: hashedPassword,
-      role: role || 'student',
-      gender,
-      date_of_birth,
-      phone,
-      address,
-      avatar_url,
-      organization_id,
-    });
-
-    // Tự động tạo bản ghi tương ứng trong Student hoặc Teacher collection
-    if (user.role === 'student') {
-      try {
-        // Tạo mã học sinh tự động từ email hoặc timestamp
-        const student_code = email.split('@')[0].toUpperCase() + Date.now().toString().slice(-6);
-
-        await Student.create({
-          user_id: user._id,
-          student_code,
+    const user = await User.create(
+      [
+        {
+          full_name,
+          email,
+          password_hash: hashedPassword,
+          role: role || 'student',
+          gender,
+          date_of_birth,
+          phone,
+          address,
+          avatar_url,
           organization_id,
-          status: 'active',
-          year_of_admission: new Date().getFullYear(),
-          academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
-        });
-        console.log(`Student record created for user ${user._id}`);
-      } catch (studentErr) {
-        console.error('Error creating student record:', studentErr.message);
-        // Không rollback user creation, chỉ log lỗi
-      }
-    } else if (user.role === 'teacher') {
-      try {
-        // Tạo mã giảng viên tự động từ email hoặc timestamp
-        const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
+        }
+      ],
+      { session }
+    );
 
-        await Teacher.create({
-          user_id: user._id,
-          teacher_code,
-          organization_id,
-          position: 'Giảng viên',
-        });
-        console.log(`Teacher record created for user ${user._id}`);
-      } catch (teacherErr) {
-        console.error('Error creating teacher record:', teacherErr.message);
-        // Không rollback user creation, chỉ log lỗi
-      }
+    const createdUser = user[0]; // do create trả về array
+
+    // Nếu role là student → tạo student record full
+    if (createdUser.role === 'student') {
+      const student_code = email.split('@')[0].toUpperCase() + Date.now().toString().slice(-6);
+
+      await Student.create(
+        [
+          {
+            user_id: createdUser._id,
+            student_code,
+            organization_id,
+            status: status || 'active',
+            year_of_admission: year_of_admission || new Date().getFullYear(),
+            academic_year: academic_year || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+            administrative_class: administrative_class || '',
+            faculty_id: faculty_id || null,
+            department_id: department_id || null,
+            advisor_id: advisor_id || null,
+          }
+        ],
+        { session }
+      );
     }
+
+    // Nếu role là teacher → tạo teacher record
+    if (createdUser.role === 'teacher') {
+      const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
+      await Teacher.create(
+        [
+          {
+            user_id: createdUser._id,
+            teacher_code,
+            organization_id,
+            position: 'Giảng viên',
+          }
+        ],
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(201).json({
       message: 'User created successfully',
-      user: { ...user.toObject(), password_hash: undefined },
+      user: { ...createdUser.toObject(), password_hash: undefined },
     });
   } catch (err) {
-    console.error('Error creating user:', err.message);
-    res.status(500).json({ message: 'Server error while creating user' });
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error creating user:', err);
+    res.status(500).json({ message: 'Server error while creating user', error: err.message });
   }
 };
 
