@@ -1,5 +1,7 @@
 const User = require('../models/userModel');
 const Organization = require('../models/organizationModel');
+const Student = require('../models/studentModel');
+const Teacher = require('../models/teacherModel');
 const bcrypt = require('bcrypt');
 
 // [POST] /api/users - Tạo người dùng mới (chỉ trong tổ chức của admin)
@@ -41,6 +43,43 @@ exports.createUser = async (req, res) => {
       avatar_url,
       organization_id,
     });
+
+    // Tự động tạo bản ghi tương ứng trong Student hoặc Teacher collection
+    if (user.role === 'student') {
+      try {
+        // Tạo mã học sinh tự động từ email hoặc timestamp
+        const student_code = email.split('@')[0].toUpperCase() + Date.now().toString().slice(-6);
+
+        await Student.create({
+          user_id: user._id,
+          student_code,
+          organization_id,
+          status: 'active',
+          year_of_admission: new Date().getFullYear(),
+          academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+        });
+        console.log(`Student record created for user ${user._id}`);
+      } catch (studentErr) {
+        console.error('Error creating student record:', studentErr.message);
+        // Không rollback user creation, chỉ log lỗi
+      }
+    } else if (user.role === 'teacher') {
+      try {
+        // Tạo mã giảng viên tự động từ email hoặc timestamp
+        const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
+
+        await Teacher.create({
+          user_id: user._id,
+          teacher_code,
+          organization_id,
+          position: 'Giảng viên',
+        });
+        console.log(`Teacher record created for user ${user._id}`);
+      } catch (teacherErr) {
+        console.error('Error creating teacher record:', teacherErr.message);
+        // Không rollback user creation, chỉ log lỗi
+      }
+    }
 
     res.status(201).json({
       message: 'User created successfully',
@@ -110,7 +149,49 @@ exports.updateUser = async (req, res) => {
     if (phone) user.phone = phone;
     if (address) user.address = address;
     if (avatar_url) user.avatar_url = avatar_url;
-    if (role) user.role = role;
+    if (role) {
+      const oldRole = user.role;
+      user.role = role;
+
+      // Xử lý chuyển đổi role giữa student/teacher
+      if (oldRole !== role) {
+        try {
+          // Nếu chuyển từ student/teacher sang role khác, xóa bản ghi tương ứng
+          if (oldRole === 'student') {
+            await Student.findOneAndDelete({ user_id: user._id, organization_id: req.user.organization_id });
+            console.log(`Student record deleted for user ${user._id}`);
+          } else if (oldRole === 'teacher') {
+            await Teacher.findOneAndDelete({ user_id: user._id, organization_id: req.user.organization_id });
+            console.log(`Teacher record deleted for user ${user._id}`);
+          }
+
+          // Nếu chuyển sang student/teacher, tạo bản ghi mới
+          if (role === 'student') {
+            const student_code = user.email.split('@')[0].toUpperCase() + Date.now().toString().slice(-6);
+            await Student.create({
+              user_id: user._id,
+              student_code,
+              organization_id: req.user.organization_id,
+              status: 'active',
+              year_of_admission: new Date().getFullYear(),
+              academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+            });
+            console.log(`Student record created for user ${user._id}`);
+          } else if (role === 'teacher') {
+            const teacher_code = 'TC' + user.email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
+            await Teacher.create({
+              user_id: user._id,
+              teacher_code,
+              organization_id: req.user.organization_id,
+              position: 'Giảng viên',
+            });
+            console.log(`Teacher record created for user ${user._id}`);
+          }
+        } catch (syncErr) {
+          console.error('Error syncing role change:', syncErr.message);
+        }
+      }
+    }
     if (typeof is_active === 'boolean') user.is_active = is_active;
 
     await user.save();
@@ -130,13 +211,33 @@ exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Chỉ xóa người dùng thuộc tổ chức của admin đang đăng nhập
-    const deleted = await User.findOneAndDelete({
+    // Lấy thông tin user trước khi xóa để xử lý xóa bản ghi tương ứng
+    const userToDelete = await User.findOne({
       _id: id,
       organization_id: req.user.organization_id
     });
 
-    if (!deleted) return res.status(404).json({ message: 'User not found in your organization' });
+    if (!userToDelete) return res.status(404).json({ message: 'User not found in your organization' });
+
+    // Xóa bản ghi tương ứng trong Student/Teacher collections
+    try {
+      if (userToDelete.role === 'student') {
+        await Student.findOneAndDelete({ user_id: userToDelete._id, organization_id: req.user.organization_id });
+        console.log(`Student record deleted for user ${userToDelete._id}`);
+      } else if (userToDelete.role === 'teacher') {
+        await Teacher.findOneAndDelete({ user_id: userToDelete._id, organization_id: req.user.organization_id });
+        console.log(`Teacher record deleted for user ${userToDelete._id}`);
+      }
+    } catch (syncErr) {
+      console.error('Error deleting related records:', syncErr.message);
+    }
+
+    // Xóa user
+    await User.findOneAndDelete({
+      _id: id,
+      organization_id: req.user.organization_id
+    });
+
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error('Error deleting user:', err.message);
