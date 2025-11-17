@@ -1,14 +1,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getMajors, deleteMajor, updateMajor, createMajor } from "@/api/majorApi";
-import { BookOutlined, PhoneOutlined, MailOutlined, TeamOutlined, UserOutlined, ApartmentOutlined, CheckCircleOutlined, StopOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined, TeamOutlined } from '@ant-design/icons';
 import MajorModal from "./components/MajorModal";
 import MajorForm from "./components/MajorForm";
 
 export default function MajorsPage() {
   const [query, setQuery] = useState("");
-  const [dept, setDept] = useState("Tất cả");
-  const [status, setStatus] = useState("Tất cả");
   const [majors, setMajors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,22 +39,9 @@ export default function MajorsPage() {
       const matchQuery = q
         ? m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)
         : true;
-      const matchDept = dept === "Tất cả" ? true : m.department === dept;
-      const matchStatus = status === "Tất cả" ? true : m.status === status;
-      return matchQuery && matchDept && matchStatus;
+      return matchQuery;
     });
-  }, [majors, query, dept, status]);
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Đang tuyển":
-        return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
-      case "Tạm dừng":
-        return "bg-amber-50 text-amber-700 ring-amber-600/20";
-      default:
-        return "bg-gray-50 text-gray-700 ring-gray-600/20";
-    }
-  };
+  }, [majors, query]);
 
   const handleDelete = async (majorId) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa chuyên ngành này?")) {
@@ -80,16 +65,7 @@ export default function MajorsPage() {
     setCurrentMajor(major);
     setFormData({
       name: major.name || '',
-      code: major.code || '',
-      faculty_id: major.faculty_id || '',
-      head_of_department: major.head_of_department || '',
-      phone: major.phone || '',
-      email: major.email || '',
-      address: major.address || '',
-      lecturer_count: major.lecturer_count || '',
-      student_count: major.student_count || '',
-      status: major.status || 'Đang hoạt động',
-      description: major.description || ''
+      faculty_id: major.faculty_id?._id || major.faculty_id || ''
     });
     setModalOpen(true);
   };
@@ -99,16 +75,7 @@ export default function MajorsPage() {
     setCurrentMajor(null);
     setFormData({
       name: '',
-      code: '',
-      faculty_id: '',
-      head_of_department: '',
-      phone: '',
-      email: '',
-      address: '',
-      lecturer_count: '',
-      student_count: '',
-      status: 'Đang hoạt động',
-      description: ''
+      faculty_id: ''
     });
     setModalOpen(true);
   };
@@ -118,8 +85,8 @@ export default function MajorsPage() {
       setSubmitting(true);
       
       // Validate required fields
-      if (!formData.name || !formData.code || !formData.faculty_id) {
-        toast.error('Vui lòng điền đầy đủ tên, mã bộ môn và khoa');
+      if (!formData.name || !formData.faculty_id) {
+        toast.error('Vui lòng điền đầy đủ tên bộ môn và chọn khoa');
         return;
       }
 
@@ -174,36 +141,15 @@ export default function MajorsPage() {
         {/* Bảng dữ liệu chính */}
         <div className="bg-white rounded-2xl border border-gray-200/60 shadow-xl overflow-hidden">
           <div className="p-6 border-b border-gray-200 bg-gray-50/50">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative md:col-span-2">
-                <SearchOutlined className="absolute left-4 top-3.5 text-gray-400 pointer-events-none z-10" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Tìm theo mã, tên chuyên ngành..."
-                  className="w-full rounded-xl border-gray-300 bg-white pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                />
-              </div>
-              <select
-                value={dept}
-                onChange={(e) => setDept(e.target.value)}
-                className="rounded-xl border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-              >
-                <option>Tất cả khoa</option>
-                <option>CNTT</option>
-                <option>KTPM</option>
-                <option>HTTT</option>
-              </select>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="rounded-xl border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-              >
-                <option>Tất cả trạng thái</option>
-                <option>Đang tuyển</option>
-                <option>Tạm dừng</option>
-              </select>
+            <div className="relative">
+              <SearchOutlined className="absolute left-4 top-3.5 text-gray-400 pointer-events-none z-10" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Tìm theo mã, tên chuyên ngành..."
+                className="w-full rounded-xl border-gray-300 bg-white pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              />
             </div>
           </div>
 
@@ -218,16 +164,7 @@ export default function MajorsPage() {
                     Khoa
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Trưởng bộ môn
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Số học phần
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Số sinh viên
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Trạng thái
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Thao tác
@@ -257,31 +194,13 @@ export default function MajorsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {m.department}
+                      {m.faculty_id?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {m.head}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <BookOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
-                        {m.courses}
+                      <div className="flex items-center">
+                        <TeamOutlined className="h-4 w-4 text-blue-500 mr-2" />
+                        <span className="font-medium">{m.student_count || 0}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <TeamOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
-                        {m.students}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${getStatusClass(
-                          m.status
-                        )}`}
-                      >
-                        {m.status}
-                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button

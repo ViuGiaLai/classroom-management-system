@@ -1,5 +1,6 @@
 const Department = require('../models/departmentModel');
 const Faculty = require('../models/facultyModel');
+const Student = require('../models/studentModel');
 
 // [POST] Tạo mới department thuộc tổ chức
 exports.createDepartment = async (req, res) => {
@@ -29,7 +30,22 @@ exports.getDepartments = async (req, res) => {
       .populate('faculty_id', 'name')
       .sort({ created_at: -1 });
 
-    res.json(departments);
+    // Add student count to each department
+    const departmentsWithStudentCount = await Promise.all(
+      departments.map(async (dept) => {
+        const studentCount = await Student.countDocuments({
+          department_id: dept._id,
+          organization_id
+        });
+        
+        return {
+          ...dept.toObject(),
+          student_count: studentCount
+        };
+      })
+    );
+
+    res.json(departmentsWithStudentCount);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

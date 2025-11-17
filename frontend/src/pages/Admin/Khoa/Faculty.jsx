@@ -1,15 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getFaculties, deleteFaculty, updateFaculty, createFaculty } from "@/api/facultyApi";
-import { ApartmentOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined, TeamOutlined, BookOutlined } from '@ant-design/icons';
+import { getDepartments } from "@/api/departmentApi";
+import { ApartmentOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined, BookOutlined } from '@ant-design/icons';
 import FacultyModal from "./components/FacultyModal";
 import FacultyForm from "./components/FacultyForm";
 import DeleteModal from "./components/DeleteModal";
 
 export default function DepartmentsPage() {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("Tất cả");
   const [faculties, setFaculties] = useState([]);
+  const [departments, setDepartments] = useState([]); // Add state for departments
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -37,27 +38,39 @@ export default function DepartmentsPage() {
     loadFaculties();
   }, []);
 
+  // Load departments from API
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const response = await getDepartments();
+        setDepartments(response.data || []);
+      } catch (error) {
+        console.error("Error loading departments:", error);
+      }
+    };
+
+    loadDepartments();
+  }, []);
+
+  // Function to get departments count for a faculty
+  const getDepartmentsCount = (facultyId) => {
+    return departments.filter(dept => dept.faculty_id?._id === facultyId || dept.faculty_id === facultyId).length;
+  };
+
+  // Function to get departments list for a faculty
+  const getDepartmentsList = (facultyId) => {
+    return departments.filter(dept => dept.faculty_id?._id === facultyId || dept.faculty_id === facultyId);
+  };
+
   const filteredData = useMemo(() => {
     return faculties.filter((f) => {
       const q = query.toLowerCase();
       const matchQuery = q
-        ? f.name.toLowerCase().includes(q) || f.id.toLowerCase().includes(q)
+        ? f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q)
         : true;
-      const matchStatus = status === "Tất cả" ? true : f.status === status;
-      return matchQuery && matchStatus;
+      return matchQuery;
     });
-  }, [faculties, query, status]);
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Đang hoạt động":
-        return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
-      case "Tạm dừng":
-        return "bg-amber-50 text-amber-700 ring-amber-600/20";
-      default:
-        return "bg-gray-50 text-gray-700 ring-gray-600/20";
-    }
-  };
+  }, [faculties, query]);
 
   // CRUD operations
   const handleDelete = (faculty) => {
@@ -93,18 +106,15 @@ export default function DepartmentsPage() {
   };
 
   const handleEdit = (faculty) => {
+    console.log('Editing faculty:', faculty);
     setIsEdit(true);
     setCurrentFaculty(faculty);
-    setFormData({
+    const newFormData = {
       name: faculty.name || '',
-      code: faculty.code || '',
-      head_of_faculty: faculty.head_of_faculty || '',
-      phone: faculty.phone || '',
-      email: faculty.email || '',
-      address: faculty.address || '',
-      status: faculty.status || 'Đang hoạt động',
-      description: faculty.description || ''
-    });
+      code: faculty.code || ''
+    };
+    console.log('Setting formData to:', newFormData);
+    setFormData(newFormData);
     setModalOpen(true);
   };
 
@@ -113,13 +123,7 @@ export default function DepartmentsPage() {
     setCurrentFaculty(null);
     setFormData({
       name: '',
-      code: '',
-      head_of_faculty: '',
-      phone: '',
-      email: '',
-      address: '',
-      status: 'Đang hoạt động',
-      description: ''
+      code: ''
     });
     setModalOpen(true);
   };
@@ -189,8 +193,11 @@ export default function DepartmentsPage() {
 
   const closeModal = () => {
     setModalOpen(false);
-    setFormData({});
-    setCurrentFaculty(null);
+    // Only reset form data after modal is closed to avoid flickering
+    setTimeout(() => {
+      setFormData({});
+      setCurrentFaculty(null);
+    }, 300);
   };
 
   return (
@@ -224,8 +231,8 @@ export default function DepartmentsPage() {
         {!loading && (
           <div className="bg-white rounded-2xl border border-gray-200/60 shadow-xl overflow-hidden">
             <div className="p-6 border-b border-gray-200 bg-gray-50/50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="relative md:col-span-2">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="relative">
                   <SearchOutlined className="absolute left-4 top-3.5 text-gray-400 pointer-events-none z-10" />
                   <input
                     type="text"
@@ -235,15 +242,6 @@ export default function DepartmentsPage() {
                     className="w-full rounded-xl border-gray-300 bg-white pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                   />
                 </div>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="rounded-xl border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                >
-                  <option>Tất cả trạng thái</option>
-                  <option>Đang hoạt động</option>
-                  <option>Tạm dừng</option>
-                </select>
               </div>
             </div>
 
@@ -252,21 +250,12 @@ export default function DepartmentsPage() {
                 <thead className="bg-gray-50/70 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Thông tin
+                      Thông tin khoa
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Trưởng khoa
+                      Số chuyên ngành
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Số giảng viên
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Chương trình
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Trạng thái
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Thao tác
                     </th>
                   </tr>
@@ -274,7 +263,7 @@ export default function DepartmentsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredData.map((d) => (
                     <tr
-                      key={d.id}
+                      key={d._id}
                       className="hover:bg-gray-50/80 transition-colors duration-150"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -282,7 +271,7 @@ export default function DepartmentsPage() {
                           <div className="h-10 w-10 flex-shrink-0">
                             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center">
                               <span className="text-sm font-bold leading-none text-white">
-                                {d.id}
+                                {d.code}
                               </span>
                             </div>
                           </div>
@@ -290,34 +279,34 @@ export default function DepartmentsPage() {
                             <div className="text-sm font-medium text-gray-900">
                               {d.name}
                             </div>
+                            <div className="text-sm text-gray-500">
+                              Mã khoa: {d.code}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{d.head}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <TeamOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
-                          {d.lecturers}
+                        <div className="flex items-center space-x-2">
+                          <BookOutlined className="h-4 w-4 text-gray-400" />
+                          <div className="text-sm text-gray-900">
+                            {getDepartmentsCount(d._id)} chuyên ngành
+                          </div>
+                        </div>
+                        <div className="mt-1">
+                          {getDepartmentsList(d._id).slice(0, 2).map((dept, index) => (
+                            <div key={dept._id} className="text-xs text-gray-500">
+                              {dept.name}
+                              {index === 0 && getDepartmentsList(d._id).length > 1 && ","}
+                            </div>
+                          ))}
+                          {getDepartmentsCount(d._id) > 2 && (
+                            <div className="text-xs text-gray-400">
+                              +{getDepartmentsCount(d._id) - 2} khác
+                            </div>
+                          )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <BookOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
-                          {d.programs}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${getStatusClass(
-                            d.status
-                          )}`}
-                        >
-                          {d.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <button
                           onClick={() => handleEdit(d)}
                           className="text-blue-600 hover:text-blue-800 mr-4 transition-colors duration-150"
