@@ -29,6 +29,13 @@ exports.createUser = async (req, res) => {
       status,
       year_of_admission,
       academic_year,
+
+      // Thông tin teacher nếu role = teacher
+      position,
+      degree,
+      specialization,
+      teacher_faculty_id,
+      teacher_department_id,
     } = req.body;
 
     const organization_id = req.user.organization_id;
@@ -89,18 +96,8 @@ exports.createUser = async (req, res) => {
 
     // Nếu role là teacher → tạo teacher record
     if (createdUser.role === 'teacher') {
-      const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
-      await Teacher.create(
-        [
-          {
-            user_id: createdUser._id,
-            teacher_code,
-            organization_id,
-            position: 'Giảng viên',
-          }
-        ],
-        { session }
-      );
+      // Teacher record will be created separately via teacherController
+      console.log(`User created with teacher role, teacher record should be created separately`);
     }
 
     await session.commitTransaction();
@@ -150,6 +147,22 @@ exports.updateUser = async (req, res) => {
       role,
       is_active,
       organization_id,
+
+      // Student-specific fields
+      administrative_class,
+      faculty_id,
+      department_id,
+      advisor_id,
+      status,
+      year_of_admission,
+      academic_year,
+
+      // Teacher-specific fields
+      position,
+      degree,
+      specialization,
+      teacher_faculty_id,
+      teacher_department_id,
     } = req.body;
 
     // Chỉ cập nhật người dùng thuộc tổ chức của admin đang đăng nhập
@@ -222,6 +235,41 @@ exports.updateUser = async (req, res) => {
     if (typeof is_active === 'boolean') user.is_active = is_active;
 
     await user.save();
+
+    // Update role-specific records if needed
+    if (user.role === 'student') {
+      const studentUpdate = {};
+      if (administrative_class !== undefined) studentUpdate.administrative_class = administrative_class;
+      if (faculty_id !== undefined) studentUpdate.faculty_id = faculty_id;
+      if (department_id !== undefined) studentUpdate.department_id = department_id;
+      if (advisor_id !== undefined) studentUpdate.advisor_id = advisor_id;
+      if (status !== undefined) studentUpdate.status = status;
+      if (year_of_admission !== undefined) studentUpdate.year_of_admission = year_of_admission;
+      if (academic_year !== undefined) studentUpdate.academic_year = academic_year;
+
+      if (Object.keys(studentUpdate).length > 0) {
+        await Student.findOneAndUpdate(
+          { user_id: user._id, organization_id: req.user.organization_id },
+          studentUpdate,
+          { new: true }
+        );
+      }
+    } else if (user.role === 'teacher') {
+      const teacherUpdate = {};
+      if (position !== undefined) teacherUpdate.position = position;
+      if (degree !== undefined) teacherUpdate.degree = degree;
+      if (specialization !== undefined) teacherUpdate.specialization = specialization;
+      if (teacher_faculty_id !== undefined) teacherUpdate.faculty_id = teacher_faculty_id;
+      if (teacher_department_id !== undefined) teacherUpdate.department_id = teacher_department_id;
+
+      if (Object.keys(teacherUpdate).length > 0) {
+        await Teacher.findOneAndUpdate(
+          { user_id: user._id, organization_id: req.user.organization_id },
+          teacherUpdate,
+          { new: true }
+        );
+      }
+    }
 
     res.status(200).json({
       message: 'User updated successfully',
