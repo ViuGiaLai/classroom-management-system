@@ -41,6 +41,11 @@ const classSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    status: {
+      type: String,
+      enum: ['Đang hoạt động', 'Tạm dừng', 'Đã kết thúc'],
+      default: 'Đang hoạt động',
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
