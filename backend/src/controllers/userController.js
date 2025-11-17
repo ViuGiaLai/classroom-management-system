@@ -96,8 +96,23 @@ exports.createUser = async (req, res) => {
 
     // Nếu role là teacher → tạo teacher record
     if (createdUser.role === 'teacher') {
-      // Teacher record will be created separately via teacherController
-      console.log(`User created with teacher role, teacher record should be created separately`);
+      const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
+      await Teacher.create(
+        [
+          {
+            user_id: createdUser._id,
+            teacher_code,
+            organization_id,
+            position: position || 'Giảng viên',
+            degree: degree || '',
+            specialization: specialization || '',
+            faculty_id: teacher_faculty_id || null,
+            department_id: teacher_department_id || null,
+          }
+        ],
+        { session }
+      );
+      console.log(`Teacher record created for user ${createdUser._id}`);
     }
 
     await session.commitTransaction();
@@ -217,7 +232,7 @@ exports.updateUser = async (req, res) => {
               academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
             });
             console.log(`Student record created for user ${user._id}`);
-          } else if (role === 'teacher') {
+          } else if (role === 'teacher' && (position || degree || specialization || teacher_faculty_id || teacher_department_id)) {
             const teacher_code = 'TC' + user.email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
             await Teacher.create({
               user_id: user._id,
