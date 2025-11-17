@@ -29,6 +29,13 @@ exports.createUser = async (req, res) => {
       status,
       year_of_admission,
       academic_year,
+
+      // Teacher-specific fields
+      position,
+      degree,
+      specialization,
+      teacher_faculty_id,
+      teacher_department_id,
     } = req.body;
 
     const organization_id = req.user.organization_id;
@@ -149,6 +156,13 @@ exports.updateUser = async (req, res) => {
       status,
       year_of_admission,
       academic_year,
+
+      // Teacher-specific fields
+      position,
+      degree,
+      specialization,
+      teacher_faculty_id,
+      teacher_department_id,
     } = req.body;
 
     // Chỉ cập nhật người dùng thuộc tổ chức của admin đang đăng nhập
@@ -209,7 +223,11 @@ exports.updateUser = async (req, res) => {
               user_id: user._id,
               teacher_code,
               organization_id: req.user.organization_id,
-              position: 'Giảng viên',
+              position: position || 'Giảng viên',
+              degree: degree || '',
+              specialization: specialization || '',
+              faculty_id: teacher_faculty_id || null,
+              department_id: teacher_department_id || null,
             });
             console.log(`Teacher record created for user ${user._id}`);
           }
@@ -237,6 +255,21 @@ exports.updateUser = async (req, res) => {
         await Student.findOneAndUpdate(
           { user_id: user._id, organization_id: req.user.organization_id },
           studentUpdate,
+          { new: true }
+        );
+      }
+    } else if (user.role === 'teacher') {
+      const teacherUpdate = {};
+      if (position !== undefined) teacherUpdate.position = position;
+      if (degree !== undefined) teacherUpdate.degree = degree;
+      if (specialization !== undefined) teacherUpdate.specialization = specialization;
+      if (teacher_faculty_id !== undefined) teacherUpdate.faculty_id = teacher_faculty_id;
+      if (teacher_department_id !== undefined) teacherUpdate.department_id = teacher_department_id;
+
+      if (Object.keys(teacherUpdate).length > 0) {
+        await Teacher.findOneAndUpdate(
+          { user_id: user._id, organization_id: req.user.organization_id },
+          teacherUpdate,
           { new: true }
         );
       }
