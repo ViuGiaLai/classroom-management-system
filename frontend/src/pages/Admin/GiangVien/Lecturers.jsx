@@ -1,63 +1,151 @@
-import { useMemo, useState } from "react";
-
-const seedLecturers = [
-  {
-    id: "GV001",
-    name: "Nguyễn Văn A",
-    email: "gv.a@lms.edu.vn",
-    department: "CNTT",
-    rank: "ThS.",
-    courses: 3,
-    status: "Đang giảng dạy",
-  },
-  {
-    id: "GV002",
-    name: "Trần Thị B",
-    email: "gv.b@lms.edu.vn",
-    department: "KTPM",
-    rank: "TS.",
-    courses: 2,
-    status: "Đang giảng dạy",
-  },
-  {
-    id: "GV003",
-    name: "Lê Văn C",
-    email: "gv.c@lms.edu.vn",
-    department: "HTTT",
-    rank: "ThS.",
-    courses: 1,
-    status: "Tạm nghỉ",
-  },
-];
+import { useMemo, useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { getTeachers, deleteTeacher, updateTeacher, createTeacher } from "@/api/teacherApi";
+import LecturerModal from "./components/LecturerModal";
+import LecturerForm from "./components/LecturerForm";
 
 export default function LecturersPage() {
   const [query, setQuery] = useState("");
   const [dept, setDept] = useState("Tất cả");
   const [status, setStatus] = useState("Tất cả");
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [currentTeacher, setCurrentTeacher] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const data = useMemo(() => {
-    return seedLecturers.filter((l) => {
+  // Load teachers from API
+  useEffect(() => {
+    const loadTeachers = async () => {
+      try {
+        setLoading(true);
+        const response = await getTeachers();
+        setTeachers(response.data || []);
+      } catch (error) {
+        toast.error("Không thể tải danh sách giảng viên");
+        console.error("Error loading teachers:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTeachers();
+  }, []);
+
+  const filteredData = useMemo(() => {
+    return teachers.filter((t) => {
       const q = query.toLowerCase();
       const matchQuery = q
-        ? l.name.toLowerCase().includes(q) ||
-          l.id.toLowerCase().includes(q) ||
-          l.email.toLowerCase().includes(q)
+        ? (t.user_id?.full_name && t.user_id.full_name.toLowerCase().includes(q)) ||
+          (t.teacher_code && t.teacher_code.toLowerCase().includes(q)) ||
+          (t.user_id?.email && t.user_id.email.toLowerCase().includes(q))
         : true;
-      const matchDept = dept === "Tất cả" ? true : l.department === dept;
-      const matchStatus = status === "Tất cả" ? true : l.status === status;
+      const matchDept = dept === "Tất cả" ? true : t.department_id?.name === dept;
+      const matchStatus = status === "Tất cả" ? true : t.user_id?.status === status;
       return matchQuery && matchDept && matchStatus;
     });
-  }, [query, dept, status]);
+  }, [teachers, query, dept, status]);
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "Đang giảng dạy":
+      case "active":
         return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
-      case "Tạm nghỉ":
+      case "inactive":
+        return "bg-amber-50 text-amber-700 ring-amber-600/20";
+      case "Đang hoạt động":
+        return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
+      case "Tạm dừng":
         return "bg-amber-50 text-amber-700 ring-amber-600/20";
       default:
         return "bg-gray-50 text-gray-700 ring-gray-600/20";
     }
+  };
+
+  const handleDelete = async (teacherId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa giảng viên này?")) {
+      return;
+    }
+
+    try {
+      await deleteTeacher(teacherId);
+      toast.success("Xóa giảng viên thành công");
+      // Reload teachers list
+      const response = await getTeachers();
+      setTeachers(response.data || []);
+    } catch (error) {
+      toast.error("Không thể xóa giảng viên");
+      console.error("Error deleting teacher:", error);
+    }
+  };
+
+  const handleEdit = (teacher) => {
+    setIsEdit(true);
+    setCurrentTeacher(teacher);
+    setFormData({
+      user_id: teacher.user_id?._id || teacher.user_id || '',
+      teacher_code: teacher.teacher_code || '',
+      faculty_id: teacher.faculty_id?._id || teacher.faculty_id || '',
+      department_id: teacher.department_id?._id || teacher.department_id || '',
+      position: teacher.position || '',
+      degree: teacher.degree || '',
+      specialization: teacher.specialization || ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleAdd = () => {
+    setIsEdit(false);
+    setCurrentTeacher(null);
+    setFormData({
+      user_id: '',
+      teacher_code: '',
+      faculty_id: '',
+      department_id: '',
+      position: '',
+      degree: '',
+      specialization: ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      
+      // Validate required fields
+      if (!formData.user_id || !formData.teacher_code || !formData.faculty_id) {
+        toast.error('Vui lòng điền đầy đủ thông tin người dùng, mã giảng viên và khoa');
+        return;
+      }
+
+      if (isEdit && currentTeacher) {
+        await updateTeacher(currentTeacher._id, formData);
+        toast.success('Cập nhật giảng viên thành công');
+      } else {
+        await createTeacher(formData);
+        toast.success('Tạo giảng viên thành công');
+      }
+
+      // Reload data
+      const response = await getTeachers();
+      setTeachers(response.data || []);
+      
+      setModalOpen(false);
+      setFormData({});
+    } catch (error) {
+      toast.error(isEdit ? 'Không thể cập nhật giảng viên' : 'Không thể tạo giảng viên');
+      console.error('Error saving teacher:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setFormData({});
+    setCurrentTeacher(null);
   };
 
   return (
@@ -74,7 +162,7 @@ export default function LecturersPage() {
               Danh sách giảng viên, khoa và tình trạng giảng dạy
             </p>
           </div>
-          <button className="mt-4 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          <button onClick={handleAdd} className="mt-4 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 mr-2"
@@ -136,8 +224,8 @@ export default function LecturersPage() {
                 className="rounded-xl border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
               >
                 <option>Tất cả trạng thái</option>
-                <option>Đang giảng dạy</option>
-                <option>Tạm nghỉ</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Tạm dừng</option>
               </select>
             </div>
           </div>
@@ -159,7 +247,7 @@ export default function LecturersPage() {
                     Học vị
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Số học phần
+                    Bộ môn
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Trạng thái
@@ -170,9 +258,9 @@ export default function LecturersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.map((l) => (
+                {filteredData.map((t) => (
                   <tr
-                    key={l.id}
+                    key={t._id}
                     className="hover:bg-gray-50/80 transition-colors duration-150"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -180,44 +268,47 @@ export default function LecturersPage() {
                         <div className="h-10 w-10 flex-shrink-0">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
                             <span className="text-sm font-medium leading-none text-white">
-                              {l.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
+                              {t.user_id?.full_name
+                                ? t.user_id.full_name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                : "GV"}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {l.name}
+                            {t.user_id?.full_name || "N/A"}
                           </div>
-                          <div className="text-xs text-gray-500">{l.id}</div>
+                          <div className="text-xs text-gray-500">{t.teacher_code}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {l.email}
+                      {t.user_id?.email || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {l.department}
+                      {t.faculty_id?.name || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {l.rank}
+                      {t.degree || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {l.courses}
+                      {t.department_id?.name || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${getStatusClass(
-                          l.status
+                          t.user_id?.status || "Đang hoạt động"
                         )}`}
                       >
-                        {l.status}
+                        {t.user_id?.status || "Đang hoạt động"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
+                        onClick={() => handleEdit(t)}
                         className="text-blue-600 hover:text-blue-800 mr-4 transition-colors duration-150"
                         title="Chỉnh sửa"
                       >
@@ -237,6 +328,7 @@ export default function LecturersPage() {
                         </svg>
                       </button>
                       <button
+                        onClick={() => handleDelete(t.id)}
                         className="text-red-600 hover:text-red-800 transition-colors duration-150"
                         title="Xóa"
                       >
@@ -262,6 +354,20 @@ export default function LecturersPage() {
             </table>
           </div>
         </div>
+
+        <LecturerModal
+          isOpen={modalOpen}
+          onClose={closeModal}
+          title={isEdit ? 'Chỉnh sửa giảng viên' : 'Thêm giảng viên mới'}
+          onSubmit={handleSubmit}
+          loading={submitting}
+        >
+          <LecturerForm 
+            formData={formData} 
+            setFormData={setFormData} 
+            isEdit={isEdit}
+          />
+        </LecturerModal>
       </div>
     </div>
   );

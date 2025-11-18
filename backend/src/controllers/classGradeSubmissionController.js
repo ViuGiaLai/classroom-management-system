@@ -37,6 +37,14 @@ exports.getSubmissions = async (req, res) => {
 
     const submissions = await ClassGradeSubmission.find(filter)
       .populate('teacher_id', 'full_name')
+      .populate('class_id', 'semester year schedule max_capacity current_enrollment')
+      .populate({
+        path: 'class_id',
+        populate: {
+          path: 'course_id',
+          select: 'title code'
+        }
+      })
       .populate('approved_by', 'full_name')
       .populate('rejected_by', 'full_name')
       .sort({ submitted_at: -1 });

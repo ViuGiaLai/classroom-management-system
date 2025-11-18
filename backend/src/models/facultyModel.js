@@ -5,14 +5,12 @@ const facultySchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
   },
   // mã khoa ex: Khoa CNTT
   code: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
   },
 
@@ -29,5 +27,9 @@ const facultySchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Compound unique indexes to ensure uniqueness within each organization
+facultySchema.index({ organization_id: 1, code: 1 }, { unique: true });
+facultySchema.index({ organization_id: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model('Faculty', facultySchema);

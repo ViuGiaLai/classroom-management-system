@@ -15,6 +15,13 @@ const classSchema = new mongoose.Schema(
       index: true,
     },
 
+    department_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
+      required: false,
+      index: true,
+    },
+
     // Liên kết với tổ chức
     organization_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -40,6 +47,11 @@ const classSchema = new mongoose.Schema(
     current_enrollment: {
       type: Number,
       default: 0,
+    },
+    status: {
+      type: String,
+      enum: ['Đang hoạt động', 'Tạm dừng', 'Đã kết thúc'],
+      default: 'Đang hoạt động',
     },
   },
   {

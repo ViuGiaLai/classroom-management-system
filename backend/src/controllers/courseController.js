@@ -3,15 +3,25 @@ const Course = require('../models/courseModel');
 // [POST] /api/courses - Tạo khóa học thuộc tổ chức
 exports.createCourse = async (req, res) => {
   try {
+    console.log('Creating course with user:', req.user);
+    console.log('Request body:', req.body);
+    
     const organization_id = req.user.organization_id;
+
+    if (!organization_id) {
+      console.error('Organization_id is missing for user:', req.user.id);
+      return res.status(400).json({ message: 'Organization ID is required' });
+    }
 
     const course = await Course.create({
       ...req.body,
       organization_id,
+      created_by: req.user.id,
     });
 
     res.status(201).json(course);
   } catch (err) {
+    console.error('Error creating course:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -19,14 +29,23 @@ exports.createCourse = async (req, res) => {
 // [GET] /api/courses - Lấy danh sách khóa học theo tổ chức
 exports.getCourses = async (req, res) => {
   try {
+    console.log('Getting courses for user:', req.user);
     const organization_id = req.user.organization_id;
+    
+    if (!organization_id) {
+      console.error('Organization_id is missing for user:', req.user.id);
+      return res.status(400).json({ message: 'Organization ID is required' });
+    }
 
+    console.log('Fetching courses for organization:', organization_id);
     const courses = await Course.find({ organization_id })
       .populate('department_id', 'name')
       .populate('created_by', 'email');
 
+    console.log('Found courses:', courses.length);
     res.json(courses);
   } catch (err) {
+    console.error('Error in getCourses:', err);
     res.status(500).json({ message: err.message });
   }
 };

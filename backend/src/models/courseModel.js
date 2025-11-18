@@ -28,6 +28,30 @@ const courseSchema = new mongoose.Schema({
     min: 1,
   },
 
+  theory_hours: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+
+  lab_hours: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+
+  semester: {
+    type: Number,
+    min: 1,
+    max: 8,
+  },
+
+  status: {
+    type: String,
+    enum: ['Đang hoạt động', 'Tạm dừng'],
+    default: 'Đang hoạt động',
+  },
+
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

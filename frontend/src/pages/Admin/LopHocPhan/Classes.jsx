@@ -1,61 +1,160 @@
-import { useMemo, useState } from "react";
-
-const seedClasses = [
-  {
-    id: "SE101-01",
-    course: "Nhập môn KTPM",
-    lecturer: "TS. Trần B",
-    semester: "HK1/2024",
-    students: 35,
-    status: "Đang học",
-  },
-  {
-    id: "IT201-02",
-    course: "Cấu trúc dữ liệu",
-    lecturer: "PGS. TS. Nguyễn A",
-    semester: "HK1/2024",
-    students: 42,
-    status: "Đang học",
-  },
-  {
-    id: "IS301-01",
-    course: "Phân tích HTTT",
-    lecturer: "ThS. Lê C",
-    semester: "HK2/2023",
-    students: 30,
-    status: "Đã kết thúc",
-  },
-];
+import { useMemo, useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { getCourseClasses, deleteCourseClass, updateCourseClass, createCourseClass } from "@/api/ClassApi";
+import { TeamOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined, EyeOutlined } from '@ant-design/icons';
+import ClassModal from "./components/ClassModal";
+import ClassForm from "./components/ClassForm";
+import ClassDetailModal from "./components/ClassDetailModal";
 
 export default function ClassesPage() {
   const [query, setQuery] = useState("");
   const [semester, setSemester] = useState("Tất cả");
   const [status, setStatus] = useState("Tất cả");
+  const [courseClasses, setCourseClasses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [isEdit, setIsEdit] = useState(false);
+  const [currentClass, setCurrentClass] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const data = useMemo(() => {
-    return seedClasses.filter((c) => {
+  // Load course classes from API
+  useEffect(() => {
+    const loadCourseClasses = async () => {
+      try {
+        setLoading(true);
+        const response = await getCourseClasses();
+        console.log('Classes API response:', response);
+        console.log('First class data:', response.data?.[0]);
+        setCourseClasses(response.data || []);
+      } catch (error) {
+        toast.error("Không thể tải danh sách lớp học phần");
+        console.error("Error loading course classes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCourseClasses();
+  }, []);
+
+  const filteredData = useMemo(() => {
+    return courseClasses.filter((c) => {
       const q = query.toLowerCase();
       const matchQuery = q
-        ? c.id.toLowerCase().includes(q) ||
-          c.course.toLowerCase().includes(q) ||
-          c.lecturer.toLowerCase().includes(q)
+        ? c.course_id?.title?.toLowerCase().includes(q) ||
+          c._id?.toLowerCase().includes(q) ||
+          c.course_id?.code?.toLowerCase().includes(q)
         : true;
-      const matchSemester =
-        semester === "Tất cả" ? true : c.semester === semester;
+      const matchSemester = semester === "Tất cả" ? true : c.semester === semester;
       const matchStatus = status === "Tất cả" ? true : c.status === status;
       return matchQuery && matchSemester && matchStatus;
     });
-  }, [query, semester, status]);
+  }, [courseClasses, query, semester, status]);
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "Đang học":
+      case "Đang hoạt động":
         return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
+      case "Tạm dừng":
+        return "bg-amber-50 text-amber-700 ring-amber-600/20";
       case "Đã kết thúc":
         return "bg-slate-50 text-slate-700 ring-slate-600/20";
       default:
         return "bg-gray-50 text-gray-700 ring-gray-600/20";
     }
+  };
+
+  const handleDelete = async (classId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa lớp học phần này?")) {
+      return;
+    }
+
+    try {
+      await deleteCourseClass(classId);
+      toast.success("Xóa lớp học phần thành công");
+      // Reload course classes list
+      const response = await getCourseClasses();
+      setCourseClasses(response.data || []);
+    } catch (error) {
+      toast.error("Không thể xóa lớp học phần");
+      console.error("Error deleting course class:", error);
+    }
+  };
+
+  const handleViewDetail = (courseClass) => {
+    setSelectedClass(courseClass);
+    setDetailModalOpen(true);
+  };
+
+  const handleEdit = (courseClass) => {
+    setIsEdit(true);
+    setCurrentClass(courseClass);
+    setFormData({
+      course_id: courseClass.course_id?._id || courseClass.course_id || '',
+      lecturer_id: courseClass.lecturer_id?._id || courseClass.lecturer_id || '',
+      semester: courseClass.semester || '',
+      year: courseClass.year || '',
+      max_capacity: courseClass.max_capacity || 40,
+      status: courseClass.status || 'Đang hoạt động',
+      schedule: courseClass.schedule || ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleAdd = () => {
+    setIsEdit(false);
+    setCurrentClass(null);
+    setFormData({
+      course_id: '',
+      lecturer_id: '',
+      semester: '',
+      year: new Date().getFullYear(),
+      max_capacity: 40,
+      status: 'Đang hoạt động',
+      schedule: ''
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      
+      // Validate required fields
+      if (!formData.course_id || !formData.lecturer_id || !formData.semester || !formData.year) {
+        toast.error('Vui lòng điền đầy đủ các trường bắt buộc');
+        return;
+      }
+
+      if (isEdit && currentClass) {
+        await updateCourseClass(currentClass._id, formData);
+        toast.success('Cập nhật lớp học phần thành công');
+      } else {
+        await createCourseClass(formData);
+        toast.success('Tạo lớp học phần thành công');
+      }
+
+      // Reload data
+      const response = await getCourseClasses();
+      setCourseClasses(response.data || []);
+      
+      setModalOpen(false);
+      setFormData({});
+    } catch (error) {
+      toast.error(isEdit ? 'Không thể cập nhật lớp học phần' : 'Không thể tạo lớp học phần');
+      console.error('Error saving course class:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setFormData({});
+    setCurrentClass(null);
   };
 
   return (
@@ -72,21 +171,11 @@ export default function ClassesPage() {
               Theo dõi lớp học phần theo học kỳ, giảng viên và sĩ số
             </p>
           </div>
-          <button className="mt-4 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+          <button 
+            onClick={handleAdd}
+            className="mt-4 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            <PlusOutlined className="h-5 w-5 mr-2" />
             Tạo lớp học phần
           </button>
         </div>
@@ -96,6 +185,7 @@ export default function ClassesPage() {
           <div className="p-6 border-b border-gray-200 bg-gray-50/50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative md:col-span-2">
+                <SearchOutlined className="absolute left-4 top-3.5 text-gray-400 pointer-events-none z-10" />
                 <input
                   type="text"
                   value={query}
@@ -103,20 +193,6 @@ export default function ClassesPage() {
                   placeholder="Tìm theo mã lớp, học phần, giảng viên..."
                   className="w-full rounded-xl border-gray-300 bg-white pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                 />
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
               </div>
               <select
                 value={semester}
@@ -165,9 +241,9 @@ export default function ClassesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.map((c) => (
+                {filteredData.map((c) => (
                   <tr
-                    key={c.id}
+                    key={c._id}
                     className="hover:bg-gray-50/80 transition-colors duration-150"
                   >
                     {/* Cột "Thông tin" đã được gộp và cấu trúc lại */}
@@ -176,20 +252,20 @@ export default function ClassesPage() {
                         <div className="h-10 w-10 flex-shrink-0">
                           <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center">
                             <span className="text-sm font-bold leading-none text-white">
-                              {c.id.split("-").pop()}
+                              {c._id?.split("-").pop()}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {c.course}
+                            {c.course_id?.title}
                           </div>
-                          <div className="text-xs text-gray-500">{c.id}</div>
+                          <div className="text-xs text-gray-500">{c._id}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {c.lecturer}
+                       {c.lecturer_id?.user_id?.full_name || 'Chưa phân công'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
@@ -198,21 +274,8 @@ export default function ClassesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1.5 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                          />
-                        </svg>
-                        {c.students}
+                        <TeamOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
+                        {c.current_enrollment || 0}/{c.max_capacity || 40}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -226,42 +289,25 @@ export default function ClassesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        className="text-blue-600 hover:text-blue-800 mr-4 transition-colors duration-150"
-                        title="Chỉnh sửa"
+                        onClick={() => handleViewDetail(c)}
+                        className="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-150"
+                        title="Xem chi tiết"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
+                        <EyeOutlined className="h-5 w-5" />
                       </button>
                       <button
+                        onClick={() => handleEdit(c)}
+                        className="text-yellow-600 hover:text-yellow-800 mr-3 transition-colors duration-150"
+                        title="Chỉnh sửa"
+                      >
+                        <EditOutlined className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(c._id)}
                         className="text-red-600 hover:text-red-800 transition-colors duration-150"
                         title="Xóa"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        <DeleteOutlined className="h-5 w-5" />
                       </button>
                     </td>
                   </tr>
@@ -271,6 +317,27 @@ export default function ClassesPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal for Add/Edit */}
+      <ClassModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={isEdit ? 'Chỉnh sửa lớp học phần' : 'Thêm lớp học phần mới'}
+        onSubmit={handleSubmit}
+        loading={submitting}
+      >
+        <ClassForm 
+          formData={formData} 
+          setFormData={setFormData} 
+          isEdit={isEdit}
+        />
+      </ClassModal>
+
+      <ClassDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        classData={selectedClass}
+      />
     </div>
   );
 }
