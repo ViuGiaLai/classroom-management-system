@@ -181,23 +181,6 @@ export default function GradesPage() {
               Quản lý và phê duyệt điểm sinh viên theo học phần
             </p>
           </div>
-          <button className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Nhập điểm
-          </button>
         </div>
 
         {/* Thẻ trạng thái */}
