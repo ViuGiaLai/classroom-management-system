@@ -32,9 +32,11 @@ exports.getAllClasses = async (req, res) => {
     }
 
     const cacheKey = `classes:all:${organization_id}`;
-    const cachedData = await redisClient.get(cacheKey);
-    if (cachedData) {
-      return res.status(200).json(JSON.parse(cachedData));
+    if (redisClient) {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        return res.status(200).json(JSON.parse(cachedData));
+      }
     }
 
     const classes = await Class.find({ organization_id })
@@ -48,7 +50,9 @@ exports.getAllClasses = async (req, res) => {
         }
       });
 
-    await redisClient.setEx(cacheKey, 600, JSON.stringify(classes));
+    if (redisClient) {
+      await redisClient.setEx(cacheKey, 600, JSON.stringify(classes));
+    }
     res.status(200).json(classes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -69,7 +73,9 @@ exports.createClass = async (req, res) => {
       organization_id,
     });
 
-    await redisClient.del(`classes:all:${organization_id}`);
+    if (redisClient) {
+      await redisClient.del(`classes:all:${organization_id}`);
+    }
     res.status(201).json(newClass);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -128,7 +134,9 @@ exports.updateClass = async (req, res) => {
       return res.status(404).json({ message: 'Class not found in your organization' });
     }
 
-    await redisClient.del(`classes:all:${organization_id}`);
+    if (redisClient) {
+      await redisClient.del(`classes:all:${organization_id}`);
+    }
     res.status(200).json(updatedClass);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -153,7 +161,9 @@ exports.deleteClass = async (req, res) => {
       return res.status(404).json({ message: 'Class not found in your organization' });
     }
 
-    await redisClient.del(`classes:all:${organization_id}`);
+    if (redisClient) {
+      await redisClient.del(`classes:all:${organization_id}`);
+    }
     res.status(200).json({ message: 'Class deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -199,9 +209,11 @@ exports.getStudentsInClass = async (req, res) => {
     }
 
     const cacheKey = `class:${req.params.id}:students:${organization_id}`;
-    const cachedData = await redisClient.get(cacheKey);
-    if (cachedData) {
-      return res.status(200).json(JSON.parse(cachedData));
+    if (redisClient) {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        return res.status(200).json(JSON.parse(cachedData));
+      }
     }
 
     const students = await Student.find({
@@ -209,7 +221,9 @@ exports.getStudentsInClass = async (req, res) => {
       organization_id,
     }).select('student_code full_name faculty_id department_id');
 
-    await redisClient.setEx(cacheKey, 300, JSON.stringify(students));
+    if (redisClient) {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(students));
+    }
     res.status(200).json(students);
   } catch (err) {
     res.status(500).json({ message: err.message });
