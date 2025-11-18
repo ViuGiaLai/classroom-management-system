@@ -1,11 +1,22 @@
 const Material = require('../models/materialModel');
 const { supabase } = require('../config/supabase');
-const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
+// Dynamic import for uuid to avoid ES Module warning
+let uuidv4;
+const initUuid = async () => {
+  const { v4 } = await import('uuid');
+  uuidv4 = v4;
+};
+
 exports.uploadMaterial = async (req, res) => {
   try {
+    // Initialize uuid if not already done
+    if (!uuidv4) {
+      await initUuid();
+    }
+    
     const { class_id, title } = req.body;
     const organization_id = req.user.organization_id;
     const file = req.file;

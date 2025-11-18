@@ -1,4 +1,21 @@
 const Attendance = require('../models/attendanceModel');
+const Class = require('../models/classModel');
+
+// Helper function to update class enrollment count
+const updateClassEnrollment = async (class_id, organization_id) => {
+  try {
+    const uniqueStudents = await Attendance.distinct('student_id', {
+      class_id,
+      organization_id
+    });
+    
+    await Class.findByIdAndUpdate(class_id, {
+      current_enrollment: uniqueStudents.length
+    });
+  } catch (error) {
+    console.error('Error updating class enrollment:', error);
+  }
+};
 
 // [POST] Thêm điểm danh — thuộc tổ chức
 exports.createAttendance = async (req, res) => {
@@ -27,6 +44,9 @@ exports.createAttendance = async (req, res) => {
       note,
       organization_id,
     });
+
+    // Update class enrollment count
+    await updateClassEnrollment(class_id, organization_id);
 
     res.status(201).json(record);
   } catch (error) {
@@ -89,6 +109,9 @@ exports.deleteAttendance = async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ message: 'Record not found in your organization' });
     }
+
+    // Update class enrollment count
+    await updateClassEnrollment(deleted.class_id, organization_id);
 
     res.status(200).json({ message: 'Attendance deleted successfully' });
   } catch (error) {

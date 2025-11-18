@@ -292,19 +292,6 @@ export default function DepartmentsPage() {
                             {getDepartmentsCount(d._id)} chuyên ngành
                           </div>
                         </div>
-                        <div className="mt-1">
-                          {getDepartmentsList(d._id).slice(0, 2).map((dept, index) => (
-                            <div key={dept._id} className="text-xs text-gray-500">
-                              {dept.name}
-                              {index === 0 && getDepartmentsList(d._id).length > 1 && ","}
-                            </div>
-                          ))}
-                          {getDepartmentsCount(d._id) > 2 && (
-                            <div className="text-xs text-gray-400">
-                              +{getDepartmentsCount(d._id) - 2} khác
-                            </div>
-                          )}
-                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <button

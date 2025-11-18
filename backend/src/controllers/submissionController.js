@@ -1,11 +1,19 @@
 const Submission = require('../models/submissionModel');
 const { supabase } = require('../config/supabase');
-const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 const path = require('path');
+
+// Dynamic import for uuid to avoid ES Module warning
+let uuidv4;
+const initUuid = async () => {
+  const { v4 } = await import('uuid');
+  uuidv4 = v4;
+};
 
 // [POST] Upload file bài nộp
 exports.createSubmission = async (req, res) => {
   try {
+    await initUuid();
     const { assignment_id } = req.body;
     const file = req.file;
     const organization_id = req.user.organization_id;

@@ -68,7 +68,7 @@ export default function MajorForm({ formData, setFormData, isEdit }) {
             >
               <option value="">Chọn khoa</option>
               {faculties.map(faculty => (
-                <option key={faculty.id} value={faculty.id}>
+                <option key={faculty._id || faculty.id} value={faculty._id || faculty.id}>
                   {faculty.name}
                 </option>
               ))}

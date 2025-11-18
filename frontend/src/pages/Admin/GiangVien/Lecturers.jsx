@@ -38,21 +38,25 @@ export default function LecturersPage() {
     return teachers.filter((t) => {
       const q = query.toLowerCase();
       const matchQuery = q
-        ? t.name.toLowerCase().includes(q) ||
-          t.id.toLowerCase().includes(q) ||
-          t.email.toLowerCase().includes(q)
+        ? (t.user_id?.full_name && t.user_id.full_name.toLowerCase().includes(q)) ||
+          (t.teacher_code && t.teacher_code.toLowerCase().includes(q)) ||
+          (t.user_id?.email && t.user_id.email.toLowerCase().includes(q))
         : true;
-      const matchDept = dept === "Tất cả" ? true : t.department === dept;
-      const matchStatus = status === "Tất cả" ? true : t.status === status;
+      const matchDept = dept === "Tất cả" ? true : t.department_id?.name === dept;
+      const matchStatus = status === "Tất cả" ? true : t.user_id?.status === status;
       return matchQuery && matchDept && matchStatus;
     });
   }, [teachers, query, dept, status]);
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "Đang giảng dạy":
+      case "active":
         return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
-      case "Tạm nghỉ":
+      case "inactive":
+        return "bg-amber-50 text-amber-700 ring-amber-600/20";
+      case "Đang hoạt động":
+        return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
+      case "Tạm dừng":
         return "bg-amber-50 text-amber-700 ring-amber-600/20";
       default:
         return "bg-gray-50 text-gray-700 ring-gray-600/20";
@@ -80,17 +84,13 @@ export default function LecturersPage() {
     setIsEdit(true);
     setCurrentTeacher(teacher);
     setFormData({
-      name: teacher.name || '',
-      code: teacher.code || '',
-      email: teacher.email || '',
-      phone: teacher.phone || '',
-      faculty_id: teacher.faculty_id || '',
+      user_id: teacher.user_id?._id || teacher.user_id || '',
+      teacher_code: teacher.teacher_code || '',
+      faculty_id: teacher.faculty_id?._id || teacher.faculty_id || '',
+      department_id: teacher.department_id?._id || teacher.department_id || '',
       position: teacher.position || '',
       degree: teacher.degree || '',
-      specialization: teacher.specialization || '',
-      address: teacher.address || '',
-      status: teacher.status || 'Đang hoạt động',
-      description: teacher.description || ''
+      specialization: teacher.specialization || ''
     });
     setModalOpen(true);
   };
@@ -99,17 +99,13 @@ export default function LecturersPage() {
     setIsEdit(false);
     setCurrentTeacher(null);
     setFormData({
-      name: '',
-      code: '',
-      email: '',
-      phone: '',
+      user_id: '',
+      teacher_code: '',
       faculty_id: '',
+      department_id: '',
       position: '',
       degree: '',
-      specialization: '',
-      address: '',
-      status: 'Đang hoạt động',
-      description: ''
+      specialization: ''
     });
     setModalOpen(true);
   };
@@ -119,13 +115,13 @@ export default function LecturersPage() {
       setSubmitting(true);
       
       // Validate required fields
-      if (!formData.name || !formData.code || !formData.email || !formData.faculty_id) {
-        toast.error('Vui lòng điền đầy đủ tên, mã giảng viên, email và khoa');
+      if (!formData.user_id || !formData.teacher_code || !formData.faculty_id) {
+        toast.error('Vui lòng điền đầy đủ thông tin người dùng, mã giảng viên và khoa');
         return;
       }
 
       if (isEdit && currentTeacher) {
-        await updateTeacher(currentTeacher.id, formData);
+        await updateTeacher(currentTeacher._id, formData);
         toast.success('Cập nhật giảng viên thành công');
       } else {
         await createTeacher(formData);
@@ -228,8 +224,8 @@ export default function LecturersPage() {
                 className="rounded-xl border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
               >
                 <option>Tất cả trạng thái</option>
-                <option>Đang giảng dạy</option>
-                <option>Tạm nghỉ</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Tạm dừng</option>
               </select>
             </div>
           </div>
@@ -251,7 +247,7 @@ export default function LecturersPage() {
                     Học vị
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Số học phần
+                    Bộ môn
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Trạng thái
@@ -264,7 +260,7 @@ export default function LecturersPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredData.map((t) => (
                   <tr
-                    key={t.id}
+                    key={t._id}
                     className="hover:bg-gray-50/80 transition-colors duration-150"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -272,40 +268,42 @@ export default function LecturersPage() {
                         <div className="h-10 w-10 flex-shrink-0">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
                             <span className="text-sm font-medium leading-none text-white">
-                              {t.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
+                              {t.user_id?.full_name
+                                ? t.user_id.full_name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                : "GV"}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {t.name}
+                            {t.user_id?.full_name || "N/A"}
                           </div>
-                          <div className="text-xs text-gray-500">{t.id}</div>
+                          <div className="text-xs text-gray-500">{t.teacher_code}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {t.email}
+                      {t.user_id?.email || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {t.department}
+                      {t.faculty_id?.name || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {t.rank}
+                      {t.degree || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {t.courses}
+                      {t.department_id?.name || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${getStatusClass(
-                          t.status
+                          t.user_id?.status || "Đang hoạt động"
                         )}`}
                       >
-                        {t.status}
+                        {t.user_id?.status || "Đang hoạt động"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

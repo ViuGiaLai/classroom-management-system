@@ -10,5 +10,6 @@ router.get('/:id', protect, classController.getClassById);
 router.put('/:id', protect, authorize('admin', 'teacher'), classController.updateClass);
 router.delete('/:id', protect, authorize('admin'), classController.deleteClass);
 router.get('/:id/students', protect, classController.getStudentsInClass);
+router.post('/:id/recalculate-enrollment', protect, authorize('admin', 'teacher'), classController.recalculateEnrollment);
 
 module.exports = router;

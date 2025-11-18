@@ -15,6 +15,13 @@ const classSchema = new mongoose.Schema(
       index: true,
     },
 
+    department_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
+      required: false,
+      index: true,
+    },
+
     // Liên kết với tổ chức
     organization_id: {
       type: mongoose.Schema.Types.ObjectId,

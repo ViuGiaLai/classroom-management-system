@@ -61,7 +61,7 @@ export default function ClassForm({ formData, setFormData, isEdit }) {
           >
             <option value="">Chọn học phần</option>
             {courses.map(course => (
-              <option key={course.id} value={course.id}>
+              <option key={course._id} value={course._id}>
                 {course.code} - {course.title}
               </option>
             ))}
@@ -81,8 +81,8 @@ export default function ClassForm({ formData, setFormData, isEdit }) {
           >
             <option value="">Chọn giảng viên</option>
             {teachers.map(teacher => (
-              <option key={teacher.id} value={teacher.id}>
-                {teacher.name}
+              <option key={teacher._id} value={teacher._id}>
+                {teacher.user_id?.full_name || teacher.full_name}
               </option>
             ))}
           </select>
@@ -146,9 +146,9 @@ export default function ClassForm({ formData, setFormData, isEdit }) {
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="Đang hoạt động">Đang hoạt động</option>
-            <option value="Tạm dừng">Tạm dừng</option>
-            <option value="Đã kết thúc">Đã kết thúc</option>
+            <option value="Đang hoạt động" key="active">Đang hoạt động</option>
+            <option value="Tạm dừng" key="paused">Tạm dừng</option>
+            <option value="Đã kết thúc" key="finished">Đã kết thúc</option>
           </select>
         </div>
       </div>

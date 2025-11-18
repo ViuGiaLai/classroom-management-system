@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getCourseClasses, deleteCourseClass, updateCourseClass, createCourseClass } from "@/api/ClassApi";
-import { TeamOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { TeamOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined, EyeOutlined } from '@ant-design/icons';
 import ClassModal from "./components/ClassModal";
 import ClassForm from "./components/ClassForm";
+import ClassDetailModal from "./components/ClassDetailModal";
 
 export default function ClassesPage() {
   const [query, setQuery] = useState("");
@@ -12,6 +13,8 @@ export default function ClassesPage() {
   const [courseClasses, setCourseClasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
   const [currentClass, setCurrentClass] = useState(null);
   const [formData, setFormData] = useState({});
@@ -23,6 +26,8 @@ export default function ClassesPage() {
       try {
         setLoading(true);
         const response = await getCourseClasses();
+        console.log('Classes API response:', response);
+        console.log('First class data:', response.data?.[0]);
         setCourseClasses(response.data || []);
       } catch (error) {
         toast.error("Không thể tải danh sách lớp học phần");
@@ -39,9 +44,9 @@ export default function ClassesPage() {
     return courseClasses.filter((c) => {
       const q = query.toLowerCase();
       const matchQuery = q
-        ? c.name.toLowerCase().includes(q) ||
-          c.id.toLowerCase().includes(q) ||
-          c.course_id.toLowerCase().includes(q)
+        ? c.course_id?.title?.toLowerCase().includes(q) ||
+          c._id?.toLowerCase().includes(q) ||
+          c.course_id?.code?.toLowerCase().includes(q)
         : true;
       const matchSemester = semester === "Tất cả" ? true : c.semester === semester;
       const matchStatus = status === "Tất cả" ? true : c.status === status;
@@ -51,8 +56,10 @@ export default function ClassesPage() {
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "Đang học":
+      case "Đang hoạt động":
         return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
+      case "Tạm dừng":
+        return "bg-amber-50 text-amber-700 ring-amber-600/20";
       case "Đã kết thúc":
         return "bg-slate-50 text-slate-700 ring-slate-600/20";
       default:
@@ -77,12 +84,17 @@ export default function ClassesPage() {
     }
   };
 
+  const handleViewDetail = (courseClass) => {
+    setSelectedClass(courseClass);
+    setDetailModalOpen(true);
+  };
+
   const handleEdit = (courseClass) => {
     setIsEdit(true);
     setCurrentClass(courseClass);
     setFormData({
-      course_id: courseClass.course_id || '',
-      lecturer_id: courseClass.lecturer_id || '',
+      course_id: courseClass.course_id?._id || courseClass.course_id || '',
+      lecturer_id: courseClass.lecturer_id?._id || courseClass.lecturer_id || '',
       semester: courseClass.semester || '',
       year: courseClass.year || '',
       max_capacity: courseClass.max_capacity || 40,
@@ -118,7 +130,7 @@ export default function ClassesPage() {
       }
 
       if (isEdit && currentClass) {
-        await updateCourseClass(currentClass.id, formData);
+        await updateCourseClass(currentClass._id, formData);
         toast.success('Cập nhật lớp học phần thành công');
       } else {
         await createCourseClass(formData);
@@ -231,7 +243,7 @@ export default function ClassesPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredData.map((c) => (
                   <tr
-                    key={c.id}
+                    key={c._id}
                     className="hover:bg-gray-50/80 transition-colors duration-150"
                   >
                     {/* Cột "Thông tin" đã được gộp và cấu trúc lại */}
@@ -240,20 +252,20 @@ export default function ClassesPage() {
                         <div className="h-10 w-10 flex-shrink-0">
                           <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center">
                             <span className="text-sm font-bold leading-none text-white">
-                              {c.id.split("-").pop()}
+                              {c._id?.split("-").pop()}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {c.course}
+                            {c.course_id?.title}
                           </div>
-                          <div className="text-xs text-gray-500">{c.id}</div>
+                          <div className="text-xs text-gray-500">{c._id}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {c.lecturer}
+                       {c.lecturer_id?.user_id?.full_name || 'Chưa phân công'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
@@ -263,7 +275,7 @@ export default function ClassesPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
                         <TeamOutlined className="h-4 w-4 mr-1.5 text-gray-400" />
-                        {c.students}
+                        {c.current_enrollment || 0}/{c.max_capacity || 40}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -277,14 +289,21 @@ export default function ClassesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
+                        onClick={() => handleViewDetail(c)}
+                        className="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-150"
+                        title="Xem chi tiết"
+                      >
+                        <EyeOutlined className="h-5 w-5" />
+                      </button>
+                      <button
                         onClick={() => handleEdit(c)}
-                        className="text-blue-600 hover:text-blue-800 mr-4 transition-colors duration-150"
+                        className="text-yellow-600 hover:text-yellow-800 mr-3 transition-colors duration-150"
                         title="Chỉnh sửa"
                       >
                         <EditOutlined className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(c.id)}
+                        onClick={() => handleDelete(c._id)}
                         className="text-red-600 hover:text-red-800 transition-colors duration-150"
                         title="Xóa"
                       >
@@ -313,6 +332,12 @@ export default function ClassesPage() {
           isEdit={isEdit}
         />
       </ClassModal>
+
+      <ClassDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        classData={selectedClass}
+      />
     </div>
   );
 }

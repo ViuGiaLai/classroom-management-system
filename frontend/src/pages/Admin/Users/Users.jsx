@@ -17,24 +17,20 @@ export default function UsersPage() {
     email: "",
     role: "student",
     password: "",
-    // Student-specific fields
+    gender: "",
+    date_of_birth: "",
+    phone: "",
+    address: "",
+    // Student fields
     administrative_class: "",
     faculty_id: "",
     department_id: "",
     advisor_id: "",
     status: "studying",
-    year_of_admission: new Date().getFullYear(),
-    academic_year: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
-    // Teacher-specific fields
+    // Teacher fields
     position: "",
     degree: "",
     specialization: "",
-    // Additional user fields
-    gender: "",
-    date_of_birth: "",
-    phone: "",
-    address: "",
-    avatar_url: ""
   });
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -73,21 +69,18 @@ export default function UsersPage() {
       email: "",
       role: "student",
       password: "",
+      gender: "",
+      date_of_birth: "",
+      phone: "",
+      address: "",
       administrative_class: "",
       faculty_id: "",
       department_id: "",
       advisor_id: "",
       status: "studying",
-      year_of_admission: new Date().getFullYear(),
-      academic_year: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
       position: "",
       degree: "",
       specialization: "",
-      gender: "",
-      date_of_birth: "",
-      phone: "",
-      address: "",
-      avatar_url: ""
     });
     setIsModalOpen(true);
   };
@@ -100,25 +93,19 @@ export default function UsersPage() {
         full_name: user.full_name || "",
         email: user.email || "",
         role: user.role || "student",
-        password: "", // Không hiển thị password cũ
-        // Student-specific fields (if available)
+        password: "",
+        gender: user.gender || "",
+        date_of_birth: user.date_of_birth || "",
+        phone: user.phone || "",
+        address: user.address || "",
         administrative_class: user.administrative_class || "",
         faculty_id: user.faculty_id || "",
         department_id: user.department_id || "",
         advisor_id: user.advisor_id || "",
         status: user.status || "studying",
-        year_of_admission: user.year_of_admission || new Date().getFullYear(),
-        academic_year: user.academic_year || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
-        // Teacher-specific fields (if available)
         position: user.position || "",
         degree: user.degree || "",
         specialization: user.specialization || "",
-        // Additional user fields
-        gender: user.gender || "",
-        date_of_birth: user.date_of_birth || "",
-        phone: user.phone || "",
-        address: user.address || "",
-        avatar_url: user.avatar_url || ""
       });
       setIsModalOpen(true);
     }
@@ -138,7 +125,7 @@ export default function UsersPage() {
     setSubmitLoading(true);
     try {
       await deleteUser(userToDelete._id);
-      await loadUsers(); // Reload danh sách
+      await loadUsers();
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
       toast.success("Xóa người dùng thành công!");
@@ -155,78 +142,130 @@ export default function UsersPage() {
     setSubmitLoading(true);
 
     try {
-      if (editingUser) {
-        // Cập nhật user - chỉ gửi password nếu có
-        const updateData = {
-          full_name: formData.full_name,
-          email: formData.email,
-          role: formData.role,
-          // Student-specific fields
-          administrative_class: formData.administrative_class,
-          faculty_id: formData.faculty_id,
-          department_id: formData.department_id,
-          advisor_id: formData.advisor_id,
-          status: formData.status,
-          year_of_admission: formData.year_of_admission,
-          academic_year: formData.academic_year,
-          // Teacher-specific fields
-          position: formData.position,
-          degree: formData.degree,
-          specialization: formData.specialization,
-          // Additional user fields
-          gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
-          phone: formData.phone,
-          address: formData.address,
-          avatar_url: formData.avatar_url
-        };
+      // Validate required fields
+      if (!formData.full_name.trim()) {
+        toast.error("Vui lòng nhập họ tên");
+        setSubmitLoading(false);
+        return;
+      }
+      
+      if (!formData.email.trim()) {
+        toast.error("Vui lòng nhập email");
+        setSubmitLoading(false);
+        return;
+      }
+      
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        toast.error("Email không hợp lệ");
+        setSubmitLoading(false);
+        return;
+      }
+      
+      if (!formData.role) {
+        toast.error("Vui lòng chọn vai trò");
+        setSubmitLoading(false);
+        return;
+      }
 
-        // Chỉ thêm password nếu người dùng nhập
-        if (formData.password.trim()) {
-          updateData.password = formData.password;
-        }
+      // Dữ liệu cơ bản
+      const submitData = {
+        full_name: formData.full_name.trim(),
+        email: formData.email.trim(),
+        role: formData.role,
+        gender: formData.gender || "",
+        date_of_birth: formData.date_of_birth || "",
+        phone: formData.phone || "",
+        address: formData.address || "",
+      };
 
-        await updateUser(editingUser._id, updateData);
-        toast.success("Cập nhật người dùng thành công!");
-      } else {
-        // Tạo user mới - password là bắt buộc
-        if (!formData.password.trim()) {
-          toast.error("Vui lòng nhập mật khẩu");
+      // Thêm password nếu có
+      if (formData.password.trim()) {
+        submitData.password = formData.password.trim();
+      } else if (!editingUser) {
+        // Password bắt buộc khi tạo mới
+        toast.error("Vui lòng nhập mật khẩu");
+        setSubmitLoading(false);
+        return;
+      }
+
+      // Thêm các trường theo role với validation
+      if (formData.role === 'student') {
+        if (!formData.faculty_id) {
+          toast.error("Vui lòng chọn khoa cho sinh viên");
           setSubmitLoading(false);
           return;
         }
+        submitData.administrative_class = formData.administrative_class || "";
+        submitData.faculty_id = formData.faculty_id;
+        submitData.department_id = formData.department_id || "";
+        submitData.advisor_id = formData.advisor_id || "";
+        submitData.status = formData.status || "studying";
+      } else if (formData.role === 'teacher') {
+        if (!formData.faculty_id) {
+          toast.error("Vui lòng chọn khoa cho giảng viên");
+          setSubmitLoading(false);
+          return;
+        }
+        submitData.position = formData.position || "";
+        submitData.degree = formData.degree || "";
+        submitData.specialization = formData.specialization || "";
+        submitData.faculty_id = formData.faculty_id;
+        submitData.department_id = formData.department_id || "";
+      }
 
-        await createUser(formData);
+      // Log data being sent for debugging
+      console.log("Submitting user data:", submitData);
+
+      if (editingUser) {
+        await updateUser(editingUser._id, submitData);
+        toast.success("Cập nhật người dùng thành công!");
+      } else {
+        await createUser(submitData);
         toast.success("Thêm người dùng thành công!");
       }
 
-      await loadUsers(); // Reload danh sách
+      await loadUsers();
       setIsModalOpen(false);
       setFormData({
         full_name: "",
         email: "",
         role: "student",
         password: "",
+        gender: "",
+        date_of_birth: "",
+        phone: "",
+        address: "",
         administrative_class: "",
         faculty_id: "",
         department_id: "",
         advisor_id: "",
         status: "studying",
-        year_of_admission: new Date().getFullYear(),
-        academic_year: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         position: "",
         degree: "",
         specialization: "",
-        gender: "",
-        date_of_birth: "",
-        phone: "",
-        address: "",
-        avatar_url: ""
       });
       setEditingUser(null);
     } catch (error) {
       console.error("Failed to save user:", error);
-      const errorMessage = error.response?.data?.message || "Có lỗi xảy ra";
+      console.error("Error response:", error.response);
+      console.error("Error data:", error.response?.data);
+      
+      let errorMessage = "Có lỗi xảy ra";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.status === 500) {
+        errorMessage = "Lỗi server: Vui lòng kiểm tra lại dữ liệu hoặc liên hệ quản trị viên";
+      } else if (error.response?.status === 400) {
+        errorMessage = "Dữ liệu không hợp lệ: Vui lòng kiểm tra lại thông tin";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast.error(errorMessage);
     } finally {
       setSubmitLoading(false);
@@ -236,7 +275,7 @@ export default function UsersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Phần Header */}
+        {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="space-y-1">

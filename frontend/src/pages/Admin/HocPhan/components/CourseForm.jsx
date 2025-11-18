@@ -24,11 +24,20 @@ export default function CourseForm({ formData, setFormData, isEdit }) {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, type } = e.target;
+    
+    // Convert numeric fields to numbers
+    if (type === 'number') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value === '' ? '' : Number(value)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   return (
@@ -77,7 +86,7 @@ export default function CourseForm({ formData, setFormData, isEdit }) {
           >
             <option value="">Chọn bộ môn</option>
             {departments.map(dept => (
-              <option key={dept.id} value={dept.id}>
+              <option key={dept._id} value={dept._id}>
                 {dept.name}
               </option>
             ))}
@@ -141,14 +150,14 @@ export default function CourseForm({ formData, setFormData, isEdit }) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Chọn học kỳ</option>
-            <option value="1">Học kỳ 1</option>
-            <option value="2">Học kỳ 2</option>
-            <option value="3">Học kỳ 3</option>
-            <option value="4">Học kỳ 4</option>
-            <option value="5">Học kỳ 5</option>
-            <option value="6">Học kỳ 6</option>
-            <option value="7">Học kỳ 7</option>
-            <option value="8">Học kỳ 8</option>
+            <option key="1" value="1">Học kỳ 1</option>
+            <option key="2" value="2">Học kỳ 2</option>
+            <option key="3" value="3">Học kỳ 3</option>
+            <option key="4" value="4">Học kỳ 4</option>
+            <option key="5" value="5">Học kỳ 5</option>
+            <option key="6" value="6">Học kỳ 6</option>
+            <option key="7" value="7">Học kỳ 7</option>
+            <option key="8" value="8">Học kỳ 8</option>
           </select>
         </div>
 
@@ -162,8 +171,8 @@ export default function CourseForm({ formData, setFormData, isEdit }) {
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="Đang hoạt động">Đang hoạt động</option>
-            <option value="Tạm dừng">Tạm dừng</option>
+            <option key="active" value="Đang hoạt động">Đang hoạt động</option>
+            <option key="inactive" value="Tạm dừng">Tạm dừng</option>
           </select>
         </div>
       </div>

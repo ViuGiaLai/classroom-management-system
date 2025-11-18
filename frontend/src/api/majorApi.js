@@ -25,10 +25,28 @@ export const deleteMajor = (id) => {
   return api.delete(`/departments/${id}`);
 };
 
+// Lấy danh sách lớp học phần của bộ môn
+export const getMajorClasses = (majorId) => {
+  return api.get(`/departments/${majorId}/classes`);
+};
+
+// Gán lớp học phần vào bộ môn
+export const assignClassToMajor = (majorId, classId) => {
+  return api.post(`/departments/${majorId}/classes`, { class_id: classId });
+};
+
+// Gỡ lớp học phần khỏi bộ môn
+export const removeClassFromMajor = (majorId, classId) => {
+  return api.delete(`/departments/${majorId}/classes/${classId}`);
+};
+
 export default {
   getMajors,
   createMajor,
   updateMajor,
   getMajorById,
-  deleteMajor
+  deleteMajor,
+  getMajorClasses,
+  assignClassToMajor,
+  removeClassFromMajor,
 };

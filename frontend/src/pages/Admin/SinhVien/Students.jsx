@@ -32,9 +32,9 @@ export default function StudentsPage() {
     return students.filter((s) => {
       const q = query.toLowerCase();
       const matchQuery = q
-        ? s.name.toLowerCase().includes(q) ||
-        s.id.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q)
+        ? s.user_id?.full_name?.toLowerCase().includes(q) ||
+        s.student_code?.toLowerCase().includes(q) ||
+        s.user_id?.email?.toLowerCase().includes(q)
         : true;
       const matchMajor = major === "Tất cả" ? true : s.major === major;
       const matchStatus = status === "Tất cả" ? true : s.status === status;
@@ -44,14 +44,31 @@ export default function StudentsPage() {
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "Đang học":
+      case "studying":
         return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
-      case "Bảo lưu":
+      case "reserved":
         return "bg-amber-50 text-amber-700 ring-amber-600/20";
-      case "Tốt nghiệp":
+      case "leave":
+        return "bg-orange-50 text-orange-700 ring-orange-600/20";
+      case "graduated":
         return "bg-blue-50 text-blue-700 ring-blue-600/20";
       default:
         return "bg-gray-50 text-gray-700 ring-gray-600/20";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "studying":
+        return "Đang học";
+      case "reserved":
+        return "Bảo lưu";
+      case "leave":
+        return "Nghỉ phép";
+      case "graduated":
+        return "Tốt nghiệp";
+      default:
+        return status;
     }
   };
 
@@ -127,9 +144,10 @@ export default function StudentsPage() {
                 className="rounded-xl border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
               >
                 <option>Tất cả trạng thái</option>
-                <option>Đang học</option>
-                <option>Bảo lưu</option>
-                <option>Tốt nghiệp</option>
+                <option value="studying">Đang học</option>
+                <option value="reserved">Bảo lưu</option>
+                <option value="leave">Nghỉ phép</option>
+                <option value="graduated">Tốt nghiệp</option>
               </select>
             </div>
           </div>
@@ -164,7 +182,7 @@ export default function StudentsPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredData.map((s) => (
                   <tr
-                    key={s.id}
+                    key={s._id}
                     className="hover:bg-gray-50/80 transition-colors duration-150"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -172,8 +190,8 @@ export default function StudentsPage() {
                         <div className="h-10 w-10 flex-shrink-0">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                             <span className="text-sm font-medium leading-none text-white">
-                              {s.name
-                                .split(" ")
+                              {s.user_id?.full_name
+                                ?.split(" ")
                                 .map((n) => n[0])
                                 .join("")}
                             </span>
@@ -181,23 +199,23 @@ export default function StudentsPage() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {s.name}
+                            {s.user_id?.full_name}
                           </div>
-                          <div className="text-xs text-gray-500">{s.id}</div>
+                          <div className="text-xs text-gray-500">{s.student_code}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {s.email}
+                      {s.user_id?.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {s.major}
+                      {s.faculty_id?.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {s.className}
+                      {s.administrative_class}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {s.year}
+                      {s.year_of_admission}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -205,7 +223,7 @@ export default function StudentsPage() {
                           s.status
                         )}`}
                       >
-                        {s.status}
+                        {getStatusText(s.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -217,7 +235,7 @@ export default function StudentsPage() {
                         <EditOutlined className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(s.id)}
+                        onClick={() => handleDelete(s._id)}
                         className="text-red-600 hover:text-red-800 transition-colors duration-150"
                         title="Xóa"
                       >
