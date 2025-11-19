@@ -37,6 +37,7 @@ const classGradeSubmissionRoutes = require('./src/routes/classGradeSubmissionRou
 const examRoutes = require('./src/routes/examRoutes');
 const questionRoutes = require('./src/routes/questionRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const reportRoutes = require('./src/routes/reportRoutes');
 const discussionRoutes = require('./src/routes/discussionRoutes');
 const discussionCommentRoutes = require('./src/routes/discussionCommentRoutes');
 const requestRoutes = require('./src/routes/requestsRoutes');
@@ -173,6 +174,8 @@ app.use('/api/exams', examRoutes);
 app.use('/api/questions', questionRoutes);
 // thông báo
 app.use('/api/notifications', notificationRoutes);
+// báo cáo
+app.use('/api/reports', reportRoutes);
 // thảo luận
 app.use('/api/discussions', discussionRoutes);
 // bình luận thảo luận
