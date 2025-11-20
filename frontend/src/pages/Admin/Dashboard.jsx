@@ -33,7 +33,59 @@ function StatCard({ title, value, subtitle, icon, color = "blue" }) {
   );
 }
 
+import React, { useState, useEffect } from 'react';
+import { getDashboardStats, getRecentActivities } from '../../api/dashboardApi';
+
 export default function Dashboard() {
+  const [stats, setStats] = useState(null);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, activitiesData] = await Promise.all([
+          getDashboardStats(),
+          getRecentActivities()
+        ]);
+        setStats(statsData);
+        setRecentActivities(activitiesData);
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-gray-500">Đang tải dữ liệu...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-red-500">{error || 'Không thể tải dữ liệu'}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     // Thêm nền gradient tinh tế cho toàn bộ trang
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 p-4 md:p-6 lg:p-8">
@@ -51,78 +103,78 @@ export default function Dashboard() {
         </div>
 
         {/* Phần các thẻ thống kê chính */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">           
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <a href="#users" title="Xem chi tiết người dùng" className="block text-current no-underline hover:no-underline focus:no-underline decoration-transparent">
-          <StatCard
-            title="Tổng người dùng"
-            value="5"
-            subtitle="1 giảng viên, 3 sinh viên"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
-            }
-            color="blue"
-          />
+            <StatCard
+              title="Tổng người dùng"
+              value={stats.users.total}
+              subtitle={stats.users.subtitle}
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-7 w-7"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+              }
+              color="blue"
+            />
           </a>
           <a href="#courses" title="Xem chi tiết học phần">
-          <StatCard
-            title="Học phần"
-            value="3"
-            subtitle="Đang hoạt động"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
-            }
-            color="green"
-          />
+            <StatCard
+              title="Học phần"
+              value={stats.courses.total}
+              subtitle={stats.courses.subtitle}
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-7 w-7"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+              }
+              color="green"
+            />
           </a>
           <a href="#classes" title="Xem chi tiết lớp học phần">
-          <StatCard
-            title="Lớp học phần"
-            value="2"
-            subtitle="Học kỳ hiện tại"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
-            }
-            color="purple"
-          />
+            <StatCard
+              title="Lớp học phần"
+              value={stats.classes.total}
+              subtitle={stats.classes.subtitle}
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-7 w-7"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
+              }
+              color="purple"
+            />
           </a>
         </div>
 
@@ -139,33 +191,33 @@ export default function Dashboard() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <a href="#departments" title="Xem chi tiết khoa">
-                <StatCard
-                  title="Khoa"
-                  value="3"
-                  subtitle="Đang hoạt động"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-7 w-7"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
-                  }
-                  color="orange"
-                />
+                  <StatCard
+                    title="Khoa"
+                    value={stats.faculties.total}
+                    subtitle={stats.faculties.subtitle}
+                    icon={
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-7 w-7"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
+                      </svg>
+                    }
+                    color="orange"
+                  />
                 </a>
               </div>
             </div>
 
-            {/* Khối Hoạt động gần đây - ĐÃ CHỈNH SỬA */}
+            {/* Khối Hoạt động gần đây */}
             <div className="bg-white rounded-2xl border border-gray-200/60 p-6 shadow-lg">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">
@@ -176,26 +228,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <ul className="space-y-4">
-                {[
-                  {
-                    color: "bg-blue-500",
-                    title: "Tạo học phần mới",
-                    desc: "Cơ sở dữ liệu",
-                    time: "2 giờ trước",
-                  },
-                  {
-                    color: "bg-emerald-500",
-                    title: "Thêm giảng viên mới",
-                    desc: "Nguyễn Văn A",
-                    time: "5 giờ trước",
-                  },
-                  {
-                    color: "bg-purple-500",
-                    title: "Cập nhật thông tin khoa CNTT",
-                    desc: "",
-                    time: "1 ngày trước",
-                  },
-                ].map((activity, index) => (
+                {recentActivities.map((activity, index) => (
                   <li
                     key={index}
                     className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50/80 transition-colors duration-150"
@@ -223,23 +256,7 @@ export default function Dashboard() {
               Thống kê nhanh
             </h2>
             <ul className="space-y-5">
-              {[
-                {
-                  icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
-                  label: "Tỷ lệ giảng viên/sinh viên",
-                  value: "1:15",
-                },
-                {
-                  icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
-                  label: "Số lớp trung bình/giảng viên",
-                  value: "2.5",
-                },
-                {
-                  icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
-                  label: "Số sinh viên trung bình/lớp",
-                  value: "35",
-                },
-              ].map((stat, index) => (
+              {stats.statistics.map((stat, index) => (
                 <li
                   key={index}
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50/80 transition-colors duration-150"

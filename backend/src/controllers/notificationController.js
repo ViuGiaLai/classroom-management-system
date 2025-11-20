@@ -3,12 +3,21 @@ const Notification = require('../models/notificationModel');
 // [POST] Tạo thông báo — thuộc tổ chức
 exports.createNotification = async (req, res) => {
   try {
-    const { sender_id, recipient_id, class_id, content } = req.body;
+    const { title, content, target } = req.body;
     const organization_id = req.user.organization_id;
+    const sender_id = req.user && (req.user._id || req.user.id);
 
     if (!sender_id || !content) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+
+    let recipient_id = null;
+    let class_id = null;
+
+    if (target && target.type === 'class') {
+      class_id = target.classId || target.class_id || null;
+    }
+    // Với type 'role' hoặc 'all' hiện tại broadcast cho tất cả (recipient_id = null)
 
     const notification = await Notification.create({
       sender_id,
@@ -18,7 +27,7 @@ exports.createNotification = async (req, res) => {
       organization_id,
     });
 
-  // Gửi realtime notification
+    // Gửi realtime notification
     const io = req.app.locals.io;
 
     if (io) {
@@ -45,15 +54,13 @@ exports.createNotification = async (req, res) => {
   }
 };
 
-// [GET] Lấy tất cả thông báo của user — thuộc tổ chức
+// [GET] Lấy tất cả thông báo trong tổ chức
 exports.getNotificationsByUser = async (req, res) => {
   try {
-    const { userId } = req.params;
     const organization_id = req.user.organization_id;
 
     const notifications = await Notification.find({
       organization_id,
-      $or: [{ recipient_id: userId }, { recipient_id: null }],
     })
       .populate('sender_id', 'full_name email')
       .populate('class_id', 'class_name')

@@ -12,7 +12,8 @@ import {
   BarChartOutlined,
   SettingOutlined,
   HistoryOutlined,
-  SolutionOutlined
+  SolutionOutlined,
+  BellOutlined
 } from '@ant-design/icons';
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { key: "classes", path: "/admin/classes", label: "Lớp học phần", icon: ScheduleOutlined },
   { key: "grades", path: "/admin/grades", label: "Quản lý điểm", icon: FileTextOutlined },
   { key: "reports", path: "/admin/reports", label: "Báo cáo", icon: BarChartOutlined },
+  { key: "notifications", path: "/admin/notifications", label: "Thông báo", icon: BellOutlined },
   { key: "settings", path: "/admin/settings", label: "Cài đặt", icon: SettingOutlined },
   { key: "logs", path: "/admin/logs", label: "Nhật ký", icon: HistoryOutlined },
 ];

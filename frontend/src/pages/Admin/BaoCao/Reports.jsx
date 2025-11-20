@@ -1,15 +1,87 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import {
+  getUserStats,
+  getCourseStats,
+  getAcademicStats,
+  getDashboardStats,
+  generateUserReport,
+  generateCourseReport,
+  generateAcademicReport,
+  generateComprehensiveReport
+} from "@/api/reportsApi";
 
 export default function GenerateReportPage() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [stats, setStats] = useState({
+    users: { totalUsers: 0, totalStudents: 0, totalTeachers: 0 },
+    courses: { totalCourses: 0, totalClasses: 0, avgStudentsPerClass: 0 },
+    academic: { avgScore: 0, passingRate: 0, totalGrades: 0 }
+  });
 
-  const handleGenerateReport = (reportType) => {
+  // Load stats khi component mount
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const [userStats, courseStats, academicStats] = await Promise.all([
+        getUserStats(),
+        getCourseStats(),
+        getAcademicStats()
+      ]);
+
+      setStats({
+        users: userStats.data,
+        courses: courseStats.data,
+        academic: academicStats.data
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      toast.error('Không thể tải thống kê');
+    }
+  };
+
+  const handleGenerateReport = async (reportType, format = 'pdf') => {
     setIsGenerating(true);
-    // Giả lập quá trình tạo báo cáo
-    setTimeout(() => {
+    try {
+      let response;
+      
+      switch (reportType) {
+        case "Báo cáo Người dùng":
+          response = await generateUserReport(format);
+          break;
+        case "Báo cáo Học phần":
+          response = await generateCourseReport(format);
+          break;
+        case "Báo cáo Kết quả học tập":
+          response = await generateAcademicReport(format);
+          break;
+        case "Báo cáo Tổng hợp":
+          response = await generateComprehensiveReport(format);
+          break;
+        default:
+          throw new Error('Loại báo cáo không hợp lệ');
+      }
+
+      // Download file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${reportType.replace(/\s+/g, '-').toLowerCase()}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Đã tạo thành công báo cáo ${reportType}!`);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Lỗi khi tạo báo cáo');
+    } finally {
       setIsGenerating(false);
-      alert(`Đã tạo thành công báo cáo ${reportType}!`);
-    }, 2000);
+    }
   };
 
   const reportModules = [
@@ -32,9 +104,9 @@ export default function GenerateReportPage() {
         </svg>
       ),
       stats: [
-        { label: "Tổng số người dùng", value: "5" },
-        { label: "Giảng viên", value: "1" },
-        { label: "Sinh viên", value: "3" },
+        { label: "Tổng số người dùng", value: stats.users.totalUsers?.toString() || "0" },
+        { label: "Giảng viên", value: stats.users.totalTeachers?.toString() || "0" },
+        { label: "Sinh viên", value: stats.users.totalStudents?.toString() || "0" },
       ],
       color: "blue",
     },
@@ -57,9 +129,9 @@ export default function GenerateReportPage() {
         </svg>
       ),
       stats: [
-        { label: "Tổng số học phần", value: "3" },
-        { label: "Lớp học", value: "2" },
-        { label: "Trung bình/lớp", value: "35 SV/lớp" },
+        { label: "Tổng số học phần", value: stats.courses.totalCourses?.toString() || "0" },
+        { label: "Lớp học", value: stats.courses.totalClasses?.toString() || "0" },
+        { label: "Trung bình/lớp", value: `${stats.courses.avgStudentsPerClass || 0} SV/lớp` },
       ],
       color: "green",
     },
@@ -82,9 +154,9 @@ export default function GenerateReportPage() {
         </svg>
       ),
       stats: [
-        { label: "Điểm trung bình", value: "7.8" },
-        { label: "Tỷ lệ qua môn", value: "92%" },
-        { label: "Tổng số đánh giá", value: "3" },
+        { label: "Điểm trung bình", value: stats.academic.avgScore || "0" },
+        { label: "Tỷ lệ qua môn", value: stats.academic.passingRate || "0%" },
+        { label: "Tổng số đánh giá", value: stats.academic.totalGrades?.toString() || "0" },
       ],
       color: "purple",
     },
@@ -173,7 +245,8 @@ export default function GenerateReportPage() {
                   <div className="flex space-x-2">
                     <button
                       className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-                      onClick={() => handleGenerateReport(module.title)}
+                      onClick={() => handleGenerateReport(module.title, 'pdf')}
+                      disabled={isGenerating}
                     >
                       <svg
                         className="w-4 h-4 mr-2"
@@ -192,7 +265,8 @@ export default function GenerateReportPage() {
                     </button>
                     <button
                       className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-                      onClick={() => handleGenerateReport(module.title)}
+                      onClick={() => handleGenerateReport(module.title, 'excel')}
+                      disabled={isGenerating}
                     >
                       <svg
                         className="w-4 h-4 mr-2"
@@ -214,7 +288,8 @@ export default function GenerateReportPage() {
                   {module.primaryAction && (
                     <button
                       className="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-                      onClick={() => handleGenerateReport(module.title)}
+                      onClick={() => handleGenerateReport(module.title, 'pdf')}
+                      disabled={isGenerating}
                     >
                       <svg
                         className="w-5 h-5 mr-2"
