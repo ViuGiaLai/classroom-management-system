@@ -21,7 +21,7 @@ const Profile = () => {
         address: '',
         gender: 'male',
         date_of_birth: '',
-        avatar_url: ''
+        avatar_url: ''  
     });
 
     const [organization, setOrganization] = useState(null);
@@ -35,6 +35,7 @@ const Profile = () => {
 
     const loadUserData = () => {
         const currentUser = getUser();
+        // console.log('Current user from localStorage:', currentUser);
 
         if (currentUser) {
             setUser({
@@ -46,7 +47,7 @@ const Profile = () => {
                 date_of_birth: currentUser.date_of_birth
                     ? format(new Date(currentUser.date_of_birth), 'yyyy-MM-dd')
                     : '',
-                avatar: currentUser.avatar_url || currentUser.avatar || ''
+                avatar_url: currentUser.avatar_url || ''  
             });
 
             if (currentUser.role === 'admin' && currentUser.organization_id) {
@@ -102,7 +103,7 @@ const Profile = () => {
             const avatarUrl = await uploadAvatar(file);
             setUser(prev => ({
                 ...prev,
-                avatar: avatarUrl
+                avatar_url: avatarUrl 
             }));
             toast.success('Tải lên ảnh đại diện thành công');
         } catch (error) {
@@ -117,15 +118,22 @@ const Profile = () => {
         setLoading(true);
 
         try {
-            const formData = new FormData();
-            Object.keys(user).forEach(key => {
-                if (user[key] !== '' && user[key] !== null) {
-                    formData.append(key, user[key]);
-                }
-            });
+            // Gửi dữ liệu dạng JSON 
+            const dataToUpdate = {
+                full_name: user.full_name,
+                phone: user.phone,
+                address: user.address,
+                gender: user.gender,
+                date_of_birth: user.date_of_birth,
+                avatar_url: user.avatar_url  
+            };
 
-            const response = await updateProfile(formData);
+            const response = await updateProfile(dataToUpdate);
+
             updateLocalStorage(response.data.user);
+
+            loadUserData();
+
             setEditing(false);
             toast.success('Cập nhật thông tin thành công');
         } catch (error) {
@@ -138,15 +146,23 @@ const Profile = () => {
 
     const updateLocalStorage = (updatedUserData) => {
         const currentUser = getUser();
+
         const newUserData = {
             ...currentUser,
-            ...updatedUserData,
-            avatar: updatedUserData.avatar_url || currentUser.avatar
+            full_name: updatedUserData.full_name || currentUser.full_name,
+            phone: updatedUserData.phone || currentUser.phone,
+            address: updatedUserData.address || currentUser.address,
+            gender: updatedUserData.gender || currentUser.gender,
+            date_of_birth: updatedUserData.date_of_birth || currentUser.date_of_birth,
+            avatar_url: updatedUserData.avatar_url || currentUser.avatar_url  
         };
+
+        // console.log('Updating localStorage with:', newUserData);
         localStorage.setItem('user', JSON.stringify(newUserData));
     };
 
     const handleEditClick = () => setEditing(true);
+
     const handleCancelEdit = () => {
         loadUserData();
         setEditing(false);
@@ -203,7 +219,7 @@ const Profile = () => {
                             </div>
 
                             <AvatarUpload
-                                avatar={user.avatar}
+                                user={user}  
                                 loading={loading}
                                 editing={editing}
                                 onAvatarChange={handleChange}

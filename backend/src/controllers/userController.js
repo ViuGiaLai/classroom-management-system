@@ -89,7 +89,7 @@ exports.createUser = async (req, res) => {
     // Nếu role là teacher
     if (createdUser.role === 'teacher') {
       const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
-      
+
       await Teacher.create(
         [
           {
@@ -118,9 +118,9 @@ exports.createUser = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error('Lỗi tạo user:', err);
-    res.status(500).json({ 
-      message: 'Lỗi server khi tạo người dùng', 
-      error: err.message 
+    res.status(500).json({
+      message: 'Lỗi server khi tạo người dùng',
+      error: err.message
     });
   }
 };
@@ -249,9 +249,9 @@ exports.updateUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Lỗi cập nhật user:', err);
-    res.status(500).json({ 
-      message: 'Lỗi server khi cập nhật', 
-      error: err.message 
+    res.status(500).json({
+      message: 'Lỗi server khi cập nhật',
+      error: err.message
     });
   }
 };
@@ -268,7 +268,7 @@ exports.updateProfile = async (req, res) => {
       address,
       gender,
       date_of_birth,
-      avatar
+      avatar_url
     } = req.body;
 
     const user = await User.findById(req.user.id).session(session);
@@ -285,7 +285,10 @@ exports.updateProfile = async (req, res) => {
     if (address) user.address = address;
     if (gender) user.gender = gender;
     if (date_of_birth) user.date_of_birth = date_of_birth;
-    if (avatar) user.avatar = avatar;
+
+    if (avatar_url && avatar_url.trim() !== '') {
+      user.avatar_url = avatar_url;
+    }
 
     await user.save({ session });
     await session.commitTransaction();
@@ -293,11 +296,22 @@ exports.updateProfile = async (req, res) => {
 
     // Lấy thông tin user mới nhất
     const updatedUser = await User.findById(user._id).select('-password_hash');
-    
+
     res.status(200).json({
       success: true,
       message: 'Cập nhật thông tin thành công',
-      user: updatedUser
+      user: {
+        id: updatedUser._id,
+        full_name: updatedUser.full_name || '',
+        email: updatedUser.email || '',
+        role: updatedUser.role || 'student',
+        organization_id: updatedUser.organization_id || null,
+        phone: updatedUser.phone || '',
+        address: updatedUser.address || '',
+        gender: updatedUser.gender || 'male',
+        date_of_birth: updatedUser.date_of_birth || null,
+        avatar_url: updatedUser.avatar_url || ''
+      }
     });
 
   } catch (error) {
