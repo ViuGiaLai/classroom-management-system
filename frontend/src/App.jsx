@@ -9,6 +9,8 @@ import AdminRoutes from './routes/AdminRoutes';
 import StudentRoutes from './routes/StudentRoutes';
 import TeacherRoutes from './routes/TeacherRoutes';
 import AdminDashboardLayout from './pages/Admin/DashboardLayout';
+import TeacherDashboardLayout from './pages/teacher/DashboardLayout';
+import StudentDashboardLayout from './pages/student/DashboardLayout';
 import Home from "./pages/Home";
 
 function App() {
@@ -38,25 +40,33 @@ function App() {
         </Route>
         {/* Student Routes - bảo vệ bằng StudentRoute */}
         <Route
-          path="/student"
+          path="/student/*"
           element={
             <StudentRoute>
-              <StudentRoutes />
+              <StudentDashboardLayout>
+                <StudentRoutes />
+              </StudentDashboardLayout>
             </StudentRoute>
           }
         />
 
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="*" element={<TeacherRoutes />} />
+
         {/* Teacher Routes - bảo vệ bằng TeacherRoute */}
         <Route
-          path="/teacher"
+          path="/teacher/*"
           element={
             <TeacherRoute>
-              <TeacherRoutes />
+              <TeacherDashboardLayout>
+                <TeacherRoutes />
+              </TeacherDashboardLayout>
             </TeacherRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="*" element={<TeacherRoutes />} />
       </Routes>
     </Router>
   );
