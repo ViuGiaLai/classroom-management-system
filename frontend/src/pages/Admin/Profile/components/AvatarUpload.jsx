@@ -1,6 +1,6 @@
 import React from 'react';
 
-const AvatarUpload = ({ avatar, loading, editing, onAvatarChange }) => {
+const AvatarUpload = ({ user, loading, editing, onAvatarChange }) => {
   return (
     <div className="flex flex-col space-y-1">
       <label className="text-sm font-medium text-gray-700">
@@ -9,8 +9,8 @@ const AvatarUpload = ({ avatar, loading, editing, onAvatarChange }) => {
       <div className="flex items-center space-x-4">
         <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-300">
           <img
-            src={avatar || '/default-avatar.png'}
-            alt="Avatar"
+            src={user?.avatar_url || '/default-avatar.png'}
+            alt="avatarUrl"
             className="w-full h-full object-cover"
           />
         </div>

@@ -81,9 +81,9 @@ export default function Topbar() {
             className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-white/20 transition"
             onClick={toggleDropdown}
           >
-            {getUser()?.avatar ? (
+            {getUser()?.avatar_url ? (
               <img 
-                src={getUser().avatar} 
+                src={getUser().avatar_url} 
                 alt="User Avatar" 
                 className="h-9 w-9 rounded-full object-cover"
               />
