@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import LogoIcon from "../../assets/logo_banary.png";
+import { getUser } from "@/utils/auth";
 
 export default function Topbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -80,18 +81,54 @@ export default function Topbar() {
             className="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-white/20 transition"
             onClick={toggleDropdown}
           >
-            <div className="h-9 w-9 rounded-full bg-blue-600 grid place-items-center text-sm font-semibold">
-              A
-            </div>
+            {getUser()?.avatar ? (
+              <img 
+                src={getUser().avatar} 
+                alt="User Avatar" 
+                className="h-9 w-9 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-full bg-blue-600 grid place-items-center text-sm font-semibold">
+                {getUser()?.full_name?.charAt(0) || 'A'}
+              </div>
+            )}
             <div className="hidden sm:flex flex-col leading-tight text-left">
-              <span className="text-sm font-semibold text-white">admin</span>
-              <span className="text-xs text-white/80">Quản trị viên</span>
+              <span className="text-sm font-semibold text-white">
+                {getUser()?.full_name || 'Người dùng'}
+              </span>
+              <span className="text-xs text-white/80">
+                {getUser()?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+              </span>
             </div>
           </div>
 
           {/* Dropdown */}
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-xl bg-white text-gray-700 z-20 animate-fadein origin-top-right">
+                <div className="py-1">
+                  <Link
+                    to="/admin/profile"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center w-full px-4 py-2 text-sm text-black hover:bg-blue-50 rounded-lg transition"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-3 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Thông tin cá nhân
+                  </Link>
+                </div>
+
               <div className="py-1">
                 <button
                   onClick={handleLogout}
