@@ -256,6 +256,62 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+// [PUT] /api/users/profile - Cập nhật thông tin cá nhân
+exports.updateProfile = async (req, res) => {
+  const session = await User.startSession();
+  session.startTransaction();
+
+  try {
+    const {
+      full_name,
+      phone,
+      address,
+      gender,
+      date_of_birth,
+      avatar
+    } = req.body;
+
+    const user = await User.findById(req.user.id).session(session);
+
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Người dùng không tồn tại' });
+    }
+
+    // Cập nhật thông tin cơ bản
+    if (full_name) user.full_name = full_name;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (gender) user.gender = gender;
+    if (date_of_birth) user.date_of_birth = date_of_birth;
+    if (avatar) user.avatar = avatar;
+
+    await user.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    // Lấy thông tin user mới nhất
+    const updatedUser = await User.findById(user._id).select('-password_hash');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật thông tin thành công',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Lỗi cập nhật thông tin cá nhân:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi cập nhật thông tin',
+      error: error.message
+    });
+  }
+};
+
 // [GET] và [DELETE] giữ nguyên như cũ
 exports.getAllUsers = async (req, res) => {
   try {

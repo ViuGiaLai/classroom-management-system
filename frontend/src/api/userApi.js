@@ -15,6 +15,11 @@ export const updateUser = (id, data) => {
   return api.put(`/users/${id}`, data);
 };
 
+// Cập nhật thông tin cá nhân
+export const updateProfile = (data) => {
+  return api.put('/users/profile', data);
+};
+
 // Xóa user (chỉ admin)
 export const deleteUser = (id) => {
   return api.delete(`/users/${id}`);
