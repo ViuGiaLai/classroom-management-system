@@ -97,7 +97,9 @@ export default function Topbar() {
                 {getUser()?.full_name || 'Người dùng'}
               </span>
               <span className="text-xs text-white/80">
-                {getUser()?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
+                {getUser()?.role === 'admin' ? 'Quản trị viên' : 
+                 getUser()?.role === 'teacher' ? 'Giảng viên' :
+                 getUser()?.role === 'student' ? 'Sinh viên' : 'Người dùng'}
               </span>
             </div>
           </div>
@@ -107,7 +109,7 @@ export default function Topbar() {
             <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-xl bg-white text-gray-700 z-20 animate-fadein origin-top-right">
                 <div className="py-1">
                   <Link
-                    to="/admin/profile"
+                    to={`/${getUser()?.role || 'admin'}/profile`}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center w-full px-4 py-2 text-sm text-black hover:bg-blue-50 rounded-lg transition"
                   >

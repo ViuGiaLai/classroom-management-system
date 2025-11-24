@@ -4,7 +4,8 @@ const {
   updateUser, 
   deleteUser, 
   createUser, 
-  updateProfile 
+  updateProfile,
+  getProfile  
 } = require('../controllers/userController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -12,8 +13,9 @@ const router = express.Router();
 
 router.post('/', protect, authorize('admin'), createUser);
 router.get('/', protect, authorize('admin'), getAllUsers);
-// - tự cập nhật thông tin cá nhân
-// Update user profile (for current user)
+
+router.get('/profile', protect, getProfile);
+
 router.put('/profile', protect, updateProfile);
 
 // Update user (admin or self)
