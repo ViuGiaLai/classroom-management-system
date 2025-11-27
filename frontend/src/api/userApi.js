@@ -14,6 +14,17 @@ export const getAllUsers = () => {
 export const updateUser = (id, data) => {
   return api.put(`/users/${id}`, data);
 };
+// Lấy profile
+export const getProfile = async () => {
+  const response = await api.get('/users/profile');
+  return response.data;
+};
+
+// Cập nhật profile
+export const updateProfile = async (data) => {
+  const response = await api.put('/users/profile', data);
+  return response.data;
+};
 
 // Xóa user (chỉ admin)
 export const deleteUser = (id) => {

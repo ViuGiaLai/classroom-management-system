@@ -89,7 +89,7 @@ exports.createUser = async (req, res) => {
     // Nếu role là teacher
     if (createdUser.role === 'teacher') {
       const teacher_code = 'TC' + email.split('@')[0].toUpperCase() + Date.now().toString().slice(-4);
-      
+
       await Teacher.create(
         [
           {
@@ -118,9 +118,9 @@ exports.createUser = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error('Lỗi tạo user:', err);
-    res.status(500).json({ 
-      message: 'Lỗi server khi tạo người dùng', 
-      error: err.message 
+    res.status(500).json({
+      message: 'Lỗi server khi tạo người dùng',
+      error: err.message
     });
   }
 };
@@ -249,9 +249,164 @@ exports.updateUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Lỗi cập nhật user:', err);
-    res.status(500).json({ 
-      message: 'Lỗi server khi cập nhật', 
-      error: err.message 
+    res.status(500).json({
+      message: 'Lỗi server khi cập nhật',
+      error: err.message
+    });
+  }
+};
+
+// [PUT] /api/users/profile - Cập nhật thông tin cá nhân
+exports.updateProfile = async (req, res) => {
+  const session = await User.startSession();
+  session.startTransaction();
+
+  try {
+    const {
+      full_name,
+      phone,
+      address,
+      gender,
+      date_of_birth,
+      avatar_url
+    } = req.body;
+
+    const user = await User.findById(req.user.id).session(session);
+
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Người dùng không tồn tại' });
+    }
+
+    // Cập nhật thông tin cơ bản
+    if (full_name) user.full_name = full_name;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (gender) user.gender = gender;
+    if (date_of_birth) user.date_of_birth = date_of_birth;
+
+    if (avatar_url && avatar_url.trim() !== '') {
+      user.avatar_url = avatar_url;
+    }
+
+    await user.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    // Lấy thông tin user mới nhất
+    const updatedUser = await User.findById(user._id).select('-password_hash');
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật thông tin thành công',
+      user: {
+        id: updatedUser._id,
+        full_name: updatedUser.full_name || '',
+        email: updatedUser.email || '',
+        role: updatedUser.role || 'student',
+        organization_id: updatedUser.organization_id || null,
+        phone: updatedUser.phone || '',
+        address: updatedUser.address || '',
+        gender: updatedUser.gender || 'male',
+        date_of_birth: updatedUser.date_of_birth || null,
+        avatar_url: updatedUser.avatar_url || ''
+      }
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Lỗi cập nhật thông tin cá nhân:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi cập nhật thông tin',
+      error: error.message
+    });
+  }
+};
+
+// [GET] /api/users/profile - Lấy thông tin profile đầy đủ
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('-password_hash')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: 'Người dùng không tồn tại' });
+    }
+
+    let profileData = {
+      id: user._id,
+      full_name: user.full_name || '',
+      email: user.email || '',
+      role: user.role || 'student',
+      organization_id: user.organization_id || null,
+      phone: user.phone || '',
+      address: user.address || '',
+      gender: user.gender || 'male',
+      date_of_birth: user.date_of_birth || null,
+      avatar_url: user.avatar_url || ''
+    };
+
+    // Nếu là student
+    if (user.role === 'student') {
+      const student = await Student.findOne({ user_id: user._id })
+        .populate('faculty_id', 'name')
+        .populate('department_id', 'name')
+        .populate({
+          path: 'advisor_id',
+          populate: { path: 'user_id', select: 'full_name' }
+        })
+        .lean();
+
+      if (student) {
+        profileData.student = {
+          student_id: student._id,
+          student_code: student.student_code,
+          administrative_class: student.administrative_class,
+          faculty: student.faculty_id,
+          department: student.department_id,
+          status: student.status,
+          year_of_admission: student.year_of_admission,
+          academic_year: student.academic_year,
+          advisor: student.advisor_id
+        };
+      }
+    }
+
+    // Nếu là teacher
+    if (user.role === 'teacher') {
+      const teacher = await Teacher.findOne({ user_id: user._id })
+        .populate('faculty_id', 'name')
+        .populate('department_id', 'name')
+        .lean();
+
+      if (teacher) {
+        profileData.teacher = {
+          teacher_id: teacher._id,
+          teacher_code: teacher.teacher_code,
+          position: teacher.position,
+          degree: teacher.degree,
+          specialization: teacher.specialization,
+          faculty: teacher.faculty_id,
+          department: teacher.department_id
+        };
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      user: profileData
+    });
+
+  } catch (error) {
+    console.error('Lỗi lấy thông tin profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi lấy thông tin profile',
+      error: error.message
     });
   }
 };

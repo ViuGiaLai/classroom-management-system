@@ -18,19 +18,16 @@ exports.registerOrganization = async (req, res) => {
       admin_password,
     } = req.body;
 
-    // Kiểm tra email tổ chức trùng
     const existingOrg = await Organization.findOne({ email: org_email });
     if (existingOrg) {
       return res.status(400).json({ message: 'Email tổ chức đã tồn tại' });
     }
 
-    // --- NEW: kiểm tra email admin trước khi tạo organization ---
     const existingAdmin = await User.findOne({ email: admin_email });
     if (existingAdmin) {
       return res.status(400).json({ message: 'Email admin đã tồn tại' });
     }
 
-    // Tạo tổ chức
     const organization = new Organization({
       name: org_name,
       email: org_email,
@@ -40,7 +37,6 @@ exports.registerOrganization = async (req, res) => {
     });
     await organization.save();
 
-    // Mã hóa mật khẩu admin và tạo tài khoản admin
     try {
       const hashedPassword = await bcrypt.hash(admin_password, 10);
 
@@ -53,10 +49,7 @@ exports.registerOrganization = async (req, res) => {
       });
       await adminUser.save();
 
-      // Tạo token JWT
       const token = generateToken(adminUser._id, adminUser.role, organization._id);
-
-      // Lưu session vào Redis (tùy chọn)
       await saveSession(adminUser._id.toString(), token);
 
       return res.status(201).json({
@@ -68,10 +61,14 @@ exports.registerOrganization = async (req, res) => {
           email: adminUser.email,
           role: adminUser.role,
           organization_id: organization._id,
+          phone: adminUser.phone || '',
+          address: adminUser.address || '',
+          gender: adminUser.gender || 'male',
+          date_of_birth: adminUser.date_of_birth || null,
+          avatar_url: adminUser.avatar_url || ''
         },
       });
     } catch (adminErr) {
-      // Nếu tạo admin thất bại → rollback: xóa organization vừa tạo để tránh dữ liệu không nhất quán
       try {
         await Organization.deleteOne({ _id: organization._id });
         console.warn('Rolled back organization due to admin creation failure:', organization._id);
@@ -101,16 +98,13 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.role, user.organization_id);
-
-    // Lưu token vào Redis để quản lý session đăng nhập
     await saveSession(user._id.toString(), token);
 
-  // giúp lưu token đăng nhập an toàn trong trình duyệt bằng cookie
     res.cookie('token', token, {
       httpOnly: true,
-      secure: true, 
+      secure: true,
       sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000,  
+      maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
 
@@ -118,12 +112,17 @@ exports.login = async (req, res) => {
       message: 'Login successful',
       user: {
         id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        organization_id: user.organization_id,
+        full_name: user.full_name || '',
+        email: user.email || '',
+        role: user.role || 'student',
+        organization_id: user.organization_id || null,
+        phone: user.phone || '',
+        address: user.address || '',
+        gender: user.gender || 'male',
+        date_of_birth: user.date_of_birth || null,
+        avatar_url: user.avatar_url || ''
       },
-      token, 
+      token,
     });
   } catch (err) {
     console.error('Login error:', err.message);
@@ -138,7 +137,19 @@ exports.getMe = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.status(200).json(user);
+
+    res.status(200).json({
+      id: user._id,
+      full_name: user.full_name || '',
+      email: user.email || '',
+      role: user.role || 'student',
+      organization_id: user.organization_id || null,
+      phone: user.phone || '',
+      address: user.address || '',
+      gender: user.gender || 'male',
+      date_of_birth: user.date_of_birth || null,
+      avatar_url: user.avatar_url || ''
+    });
   } catch (err) {
     console.error('GetMe error:', err.message);
     res.status(500).json({ message: 'Server error' });
@@ -148,10 +159,8 @@ exports.getMe = async (req, res) => {
 // [POST] /api/auth/logout - Đăng xuất
 exports.logout = async (req, res) => {
   try {
-    // Xóa session từ Redis
     await deleteSession(req.user.id);
 
-    // Xóa cookie
     res.clearCookie('token', {
       httpOnly: true,
       secure: true,
@@ -165,4 +174,3 @@ exports.logout = async (req, res) => {
     res.status(500).json({ message: 'Server error during logout' });
   }
 };
-

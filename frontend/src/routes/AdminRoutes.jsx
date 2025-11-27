@@ -12,6 +12,7 @@ import AdminClasses from '../pages/Admin/LopHocPhan/Classes';
 import AdminGrades from '../pages/Admin/QuanLyDiem/Grades';
 import AdminReports from '../pages/Admin/BaoCao/Reports';
 import Notifications from '../pages/Admin/ThongBao/Notifications';
+import Profile from '../pages/Admin/Profile';
 
 const AdminRoutes = () => {
   return (
@@ -30,6 +31,7 @@ const AdminRoutes = () => {
       <Route path="settings" element={<div className="p-6">Cài đặt (coming soon)</div>} />
       <Route path="logs" element={<div className="p-6">Nhật ký (coming soon)</div>} />
       <Route path="notifications" element={<Notifications />} />
+      <Route path="profile" element={<Profile />} />
     </Routes>
   );
 };
