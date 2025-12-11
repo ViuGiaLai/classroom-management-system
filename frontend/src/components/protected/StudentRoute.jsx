@@ -1,18 +1,25 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import { isStudent } from "@/utils/auth";
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function StudentRoute({ children }) {
-  const token = localStorage.getItem("token");
-  const userRole = localStorage.getItem("role");
+  const { isAuthenticated, isStudent, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   // Nếu chưa đăng nhập → quay lại trang login
-  if (!token) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   // Nếu không phải student → quay lại trang chủ
-  if (!isStudent() || userRole !== "student") {
+  if (!isStudent) {
     return <Navigate to="/" replace />;
   }
 
