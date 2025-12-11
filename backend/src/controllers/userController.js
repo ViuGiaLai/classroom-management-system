@@ -268,7 +268,9 @@ exports.updateProfile = async (req, res) => {
       address,
       gender,
       date_of_birth,
-      avatar_url
+      avatar_url,
+      current_password,
+      new_password
     } = req.body;
 
     const user = await User.findById(req.user.id).session(session);
@@ -277,6 +279,44 @@ exports.updateProfile = async (req, res) => {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({ message: 'Người dùng không tồn tại' });
+    }
+
+    // Xử lý đổi mật khẩu nếu có
+    if (current_password && new_password) {
+      // Kiểm tra độ dài mật khẩu mới
+      if (new_password.length < 6) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Mật khẩu mới phải có ít nhất 6 ký tự'
+        });
+      }
+
+      // Kiểm tra mật khẩu hiện tại
+      const isMatch = await bcrypt.compare(current_password, user.password_hash);
+      if (!isMatch) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(401).json({
+          success: false,
+          message: 'Mật khẩu hiện tại không đúng'
+        });
+      }
+
+      // Kiểm tra mật khẩu mới không được trùng với mật khẩu cũ
+      const isSamePassword = await bcrypt.compare(new_password, user.password_hash);
+      if (isSamePassword) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Mật khẩu mới phải khác với mật khẩu hiện tại'
+        });
+      }
+
+      // Hash và cập nhật mật khẩu mới
+      user.password_hash = await bcrypt.hash(new_password, 10);
     }
 
     // Cập nhật thông tin cơ bản
@@ -299,7 +339,9 @@ exports.updateProfile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Cập nhật thông tin thành công',
+      message: current_password && new_password 
+        ? 'Cập nhật thông tin và đổi mật khẩu thành công'
+        : 'Cập nhật thông tin thành công',
       user: {
         id: updatedUser._id,
         full_name: updatedUser.full_name || '',
