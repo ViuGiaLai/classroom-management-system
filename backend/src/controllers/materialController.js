@@ -60,16 +60,35 @@ exports.uploadMaterial = async (req, res) => {
   }
 };
 
+// Lấy tất cả tài liệu
+exports.getAllMaterials = async (req, res) => {
+  try {
+    const filter = { organization_id: req.user.organization_id };
+    if (req.user.role === 'teacher') {
+      filter.uploaded_by = req.user._id || req.user.id;
+    }
+    const materials = await Material.find(filter).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: materials.length, data: materials });
+  } catch (error) {
+    console.error('Error fetching all materials:', error);
+    res.status(500).json({ success: false, message: 'Lỗi khi lấy tất cả tài liệu', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+  }
+};
+
 // Lấy danh sách tài liệu theo lớp học
 exports.getMaterialsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
     const organization_id = req.user.organization_id;
 
-    const materials = await Material.find({
+    const filter = {
       class_id: classId,
       organization_id
-    }).sort({ createdAt: -1 });
+    };
+    if (req.user.role === 'teacher') {
+      filter.uploaded_by = req.user.id;
+    }
+    const materials = await Material.find(filter).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -81,6 +100,80 @@ exports.getMaterialsByClass = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy danh sách tài liệu',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Xóa tài liệu
+exports.deleteMaterial = async (req, res) => {
+  const session = await Material.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const organization_id = req.user.organization_id;
+
+    // Tìm tài liệu
+    const material = await Material.findOne({
+      _id: id,
+      organization_id
+    }).session(session);
+
+    if (!material) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài liệu'
+      });
+    }
+
+    // Kiểm tra quyền (chỉ người tải lên hoặc admin mới được xóa)
+    if (material.uploaded_by.toString() !== userId && req.user.role !== 'admin') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền xóa tài liệu này'
+      });
+    }
+
+    // Xóa file từ storage
+    const fileName = material.file_url.split('/').pop();
+    const { error: deleteError } = await supabase.storage
+      .from('materials')
+      .remove([fileName]);
+
+    if (deleteError) {
+      console.error('Lỗi khi xóa file từ storage:', deleteError);
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi xóa file từ storage'
+      });
+    }
+
+    // Xóa bản ghi trong database
+    await Material.deleteOne({ _id: id }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({
+      success: true,
+      message: 'Đã xóa tài liệu thành công'
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    
+    console.error('Lỗi khi xóa tài liệu:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi xóa tài liệu',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

@@ -1,18 +1,25 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import { isAdmin } from "@/utils/auth";
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function AdminRoute({ children }) {
-  const token = localStorage.getItem("token");
-  const userRole = localStorage.getItem("role");
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   // Nếu chưa đăng nhập → quay lại trang login
-  if (!token) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   // Nếu không phải admin → quay lại trang chủ
-  if (!isAdmin() || userRole !== "admin") {
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 

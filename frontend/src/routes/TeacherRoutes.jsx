@@ -2,6 +2,9 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import TeacherDashboard from '../pages/teacher/Dashboard';
 import ProfilePage from '../pages/teacher/profile/ProfilePage';
+import MaterialsPage from '../pages/teacher/TaiLieu/index';
+import TeacherClasses from '../pages/teacher/Classes/index';
+import TeacherStudents from '../pages/teacher/Students/index';
 
 const TeacherRoutes = () => {
   return (
@@ -10,8 +13,11 @@ const TeacherRoutes = () => {
       <Route path="dashboard" element={<TeacherDashboard />} />
       <Route path="profile" element={<ProfilePage />} />
       <Route path="courses" element={<div className="p-6">Khóa học (coming soon)</div>} />
-      <Route path="classes" element={<div className="p-6">Lớp học (coming soon)</div>} />
-      <Route path="students" element={<div className="p-6">Sinh viên (coming soon)</div>} />
+      <Route path="classes" element={<TeacherClasses />} />
+      <Route path="students/:classId" element={<TeacherStudents />} />
+      <Route path="students" element={<TeacherStudents />} />
+      <Route path="materials" element={<MaterialsPage />} />
+      <Route path="materials" element={<Navigate to="/teacher/classes" replace />} />
       <Route path="grades" element={<div className="p-6">Điểm số (coming soon)</div>} />
       <Route path="assignments" element={<div className="p-6">Bài tập (coming soon)</div>} />
       <Route path="schedule" element={<div className="p-6">Lịch giảng dạy (coming soon)</div>} />

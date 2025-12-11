@@ -5,6 +5,7 @@ const classController = require('../controllers/classController');
 const router = express.Router();
 
 router.get('/', protect, classController.getAllClasses);
+router.get('/teacher/my-classes', protect, authorize('teacher'), classController.getMyClasses);
 router.post('/', protect, authorize('admin', 'teacher'), classController.createClass);
 router.get('/:id', protect, classController.getClassById);
 router.put('/:id', protect, authorize('admin', 'teacher'), classController.updateClass);
