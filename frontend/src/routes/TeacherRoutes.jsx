@@ -6,6 +6,7 @@ import MaterialsPage from '../pages/teacher/TaiLieu/index';
 import TeacherClasses from '../pages/teacher/Classes/index';
 import TeacherStudents from '../pages/teacher/Students/index';
 import DiemDanh from '../pages/teacher/DiemDanh/index';
+import LichGiangDay from '../pages/teacher/LichGiangDay/index';
 
 const TeacherRoutes = () => {
   return (
@@ -21,7 +22,8 @@ const TeacherRoutes = () => {
       <Route path="materials" element={<Navigate to="/teacher/classes" replace />} />
       <Route path="grades" element={<div className="p-6">Điểm số (coming soon)</div>} />
       <Route path="assignments" element={<div className="p-6">Bài tập (coming soon)</div>} />
-      <Route path="schedule" element={<div className="p-6">Lịch giảng dạy (coming soon)</div>} />
+      <Route path="schedule" element={<LichGiangDay />} />
+      <Route path="lectures" element={<LichGiangDay />} />
       <Route path="attendance" element={<DiemDanh />} />
       <Route path="attendance/:classId" element={<DiemDanh />} />
       <Route path="reports" element={<div className="p-6">Báo cáo (coming soon)</div>} />
