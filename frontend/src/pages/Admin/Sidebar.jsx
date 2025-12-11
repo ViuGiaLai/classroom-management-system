@@ -5,81 +5,36 @@ import {
   DashboardOutlined,
   UserOutlined,
   TeamOutlined,
-  ReadOutlined,
+  SolutionOutlined,
   ApartmentOutlined,
+  ReadOutlined,
   BookOutlined,
   ScheduleOutlined,
   FileTextOutlined,
   BarChartOutlined,
+  BellOutlined,
   SettingOutlined,
-  SolutionOutlined,
+  HistoryOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined,
-} from '@ant-design/icons';
+  MenuUnfoldOutlined
+} from "@ant-design/icons";
 
 const { Sider } = Layout;
 
 const menuItems = [
-  {
-    key: 'dashboard',
-    icon: <DashboardOutlined />,
-    label: 'Tổng quan',
-    path: '/teacher/dashboard',
-  },
-  {
-    key: 'classes',
-    icon: <UserOutlined />,
-    label: 'Lớp học của tôi',
-    path: '/teacher/classes',
-  },
-  {
-    key: 'students',
-    icon: <TeamOutlined />,
-    label: 'Sinh viên',
-    path: '/teacher/students',
-  },
-  {
-    key: 'materials',
-    icon: <SolutionOutlined />,
-    label: 'Tài liệu',
-    path: '/teacher/materials',
-  },
-  {
-    key: 'assignments',
-    icon: <ApartmentOutlined />,
-    label: 'Bài tập',
-    path: '/teacher/assignments',
-  },
-  {
-    key: 'exams',
-    icon: <ReadOutlined />,
-    label: 'Kiểm tra',
-    path: '/teacher/exams',
-  },
-  {
-    key: 'attendance',
-    icon: <BookOutlined />,
-    label: 'Điểm danh',
-    path: '/teacher/attendance',
-  },
-  {
-    key: 'schedule',
-    icon: <ScheduleOutlined />,
-    label: 'Lịch giảng dạy',
-    path: '/teacher/schedule',
-  },
-  {
-    key: 'grades',
-    icon: <FileTextOutlined />,
-    label: 'Quản lý điểm',
-    path: '/teacher/grades',
-  },
-  {
-    key: 'reports',
-    icon: <BarChartOutlined />,
-    label: 'Báo cáo',
-    path: '/teacher/reports',
-  }
+  { key: "dashboard", icon: <DashboardOutlined />, label: "Tổng quan", path: "/admin/dashboard" },
+  { key: "users", icon: <UserOutlined />, label: "Người dùng", path: "/admin/users" },
+  { key: "students", icon: <TeamOutlined />, label: "Sinh viên", path: "/admin/students" },
+  { key: "lecturers", icon: <SolutionOutlined />, label: "Giảng viên", path: "/admin/lecturers" },
+  { key: "departments", icon: <ApartmentOutlined />, label: "Khoa", path: "/admin/departments" },
+  { key: "majors", icon: <ReadOutlined />, label: "Chuyên ngành", path: "/admin/majors" },
+  { key: "courses", icon: <BookOutlined />, label: "Học phần", path: "/admin/courses" },
+  { key: "classes", icon: <ScheduleOutlined />, label: "Lớp học phần", path: "/admin/classes" },
+  { key: "grades", icon: <FileTextOutlined />, label: "Quản lý điểm", path: "/admin/grades" },
+  { key: "reports", icon: <BarChartOutlined />, label: "Báo cáo", path: "/admin/reports" },
+  { key: "notifications", icon: <BellOutlined />, label: "Thông báo", path: "/admin/notifications" },
+  { key: "settings", icon: <SettingOutlined />, label: "Cài đặt", path: "/admin/settings" },
+  { key: "logs", icon: <HistoryOutlined />, label: "Nhật ký", path: "/admin/logs" },
 ];
 
 export default function Sidebar({ collapsed, onCollapse }) {
@@ -125,7 +80,7 @@ export default function Sidebar({ collapsed, onCollapse }) {
       >
         {!collapsed ? (
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#1890ff' }}>
-            GIẢNG VIÊN
+            QUẢN TRỊ VIÊN
           </h2>
         ) : (
           <div style={{ fontSize: '24px', color: '#1890ff' }}>
