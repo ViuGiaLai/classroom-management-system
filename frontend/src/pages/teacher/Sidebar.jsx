@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Layout, Menu, theme } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -11,67 +12,165 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   SolutionOutlined,
-  BellOutlined
+  BellOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 
-const navItems = [
-  { key: "dashboard", path: "/teacher/dashboard", label: "Tổng quan", icon: DashboardOutlined },
-  { key: "classes", path: "/teacher/classes", label: "Lớp học của tôi", icon: UserOutlined },
-  { key: "students", path: "/teacher/students", label: "Sinh viên", icon: TeamOutlined },
-  { key: "materials", path: "/teacher/materials", label: "Tài liệu", icon: SolutionOutlined },
-  { key: "assignments", path: "/teacher/assignments", label: "Bài tập", icon: ApartmentOutlined },
-  { key: "exams", path: "/teacher/exams", label: "Kiểm tra", icon: ReadOutlined },
-  { key: "attendance", path: "/teacher/attendance", label: "Điểm danh", icon: BookOutlined },
-  { key: "lectures", path: "/teacher/lectures", label: "Lịch giảng dạy", icon: ScheduleOutlined },
-  { key: "grades", path: "/teacher/grades", label: "Quản lý điểm", icon: FileTextOutlined },
-  { key: "notifications", path: "/teacher/notifications", label: "Thông báo", icon: BellOutlined },
-  { key: "reports", path: "/teacher/reports", label: "Báo cáo", icon: BarChartOutlined },
+const { Sider } = Layout;
+
+const menuItems = [
+  {
+    key: 'dashboard',
+    icon: <DashboardOutlined />,
+    label: 'Tổng quan',
+    path: '/teacher/dashboard',
+  },
+  {
+    key: 'classes',
+    icon: <UserOutlined />,
+    label: 'Lớp học của tôi',
+    path: '/teacher/classes',
+  },
+  {
+    key: 'students',
+    icon: <TeamOutlined />,
+    label: 'Sinh viên',
+    path: '/teacher/students',
+  },
+  {
+    key: 'materials',
+    icon: <SolutionOutlined />,
+    label: 'Tài liệu',
+    path: '/teacher/materials',
+  },
+  {
+    key: 'assignments',
+    icon: <ApartmentOutlined />,
+    label: 'Bài tập',
+    path: '/teacher/assignments',
+  },
+  {
+    key: 'exams',
+    icon: <ReadOutlined />,
+    label: 'Kiểm tra',
+    path: '/teacher/exams',
+  },
+  {
+    key: 'attendance',
+    icon: <BookOutlined />,
+    label: 'Điểm danh',
+    path: '/teacher/attendance',
+  },
+  {
+    key: 'schedule',
+    icon: <ScheduleOutlined />,
+    label: 'Lịch giảng dạy',
+    path: '/teacher/schedule',
+  },
+  {
+    key: 'grades',
+    icon: <FileTextOutlined />,
+    label: 'Quản lý điểm',
+    path: '/teacher/grades',
+  },
+  {
+    key: 'reports',
+    icon: <BarChartOutlined />,
+    label: 'Báo cáo',
+    path: '/teacher/reports',
+  }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, onCollapse }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const {
+    token: { colorBgContainer },
+  } = theme.useToken();
 
-  const isActive = (path) => {
-    return location.pathname === path ||
-      (location.pathname.endsWith(path.split('/').pop()) &&
-        location.pathname.includes('teacher'));
-  };
+  const selectedKey = menuItems.find(item =>
+    location.pathname === item.path ||
+    location.pathname.startsWith(`${item.path}/`)
+  )?.key || 'dashboard';
 
   return (
-    <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r border-gray-200 shadow-sm min-h-[calc(100vh-4rem)]">
-      <div className="p-5 border-b border-gray-100">
-        <h2 className="text-xl font-semibold text-gray-800">Quản lý</h2>
+    <Sider
+      trigger={null}
+      collapsible
+      collapsed={collapsed}
+      width={250}
+      collapsedWidth={80}
+      style={{
+        background: colorBgContainer,
+        borderRight: '1px solid #f0f0f0',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 1000,
+        boxShadow: '2px 0 8px 0 rgba(29, 35, 41, 0.05)',
+      }}
+    >
+      <div
+        style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderBottom: '1px solid #f0f0f0',
+          marginBottom: 8,
+        }}
+      >
+        {!collapsed ? (
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#1890ff' }}>
+            GIẢNG VIÊN
+          </h2>
+        ) : (
+          <div style={{ fontSize: '24px', color: '#1890ff' }}>
+            <UserOutlined />
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const active = isActive(item.path);
+      <Menu
+        mode="inline"
+        selectedKeys={[selectedKey]}
+        style={{
+          borderRight: 0,
+          padding: '0 8px',
+          height: 'calc(100% - 120px)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
+        items={menuItems.map(item => ({
+          ...item,
+          onClick: () => navigate(item.path),
+        }))}
+      />
 
-          return (
-            <button
-              key={item.key}
-              onClick={() => navigate(item.path)}
-              className={`flex items-center gap-4 rounded-lg px-4 py-3 w-full text-[15px] font-medium transition-all duration-200
-                ${active
-                  ? "bg-blue-50 text-blue-600 shadow-sm hover:bg-blue-100"
-                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-            >
-              {React.createElement(item.icon, {
-                style: { fontSize: '20px' },
-                className: active ? "text-blue-600" : "text-gray-500"
-              })}
-
-              <span className="truncate">{item.label}</span>
-
-              {active && (
-                <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></div>
-              )}
-            </button>
-          );
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          borderTop: '1px solid #f0f0f0',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          background: colorBgContainer,
+        }}
+        onClick={() => onCollapse(!collapsed)}
+      >
+        {!collapsed && <span>Thu gọn</span>}
+        {React.createElement(collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, {
+          className: 'trigger',
+          style: { fontSize: '16px' },
         })}
-      </nav>
-    </aside>
+      </div>
+    </Sider>
   );
 }

@@ -27,45 +27,39 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         {/* Admin Routes - bảo vệ bằng AdminRoute */}
-        <Route
-          path="/admin/*"
-          element={
-            <AdminRoute>
-              <AdminDashboardLayout>
-                <AdminRoutes />
-              </AdminDashboardLayout>
-            </AdminRoute>
-          }
-        >
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminDashboardLayout>
+              <AdminRoutes />
+            </AdminDashboardLayout>
+          </AdminRoute>
+        }>
           <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="*" element={<AdminRoutes />} />
         </Route>
 
         {/* Student Routes - bảo vệ bằng StudentRoute */}
-        <Route
-          path="/student/*"
-          element={
-            <StudentRoute>
-              <StudentDashboardLayout>
-                <StudentRoutes />
-              </StudentDashboardLayout>
-            </StudentRoute>
-          }
-        >
+        <Route path="/student/*" element={
+          <StudentRoute>
+            <StudentDashboardLayout>
+              <StudentRoutes />
+            </StudentDashboardLayout>
+          </StudentRoute>
+        }>
           <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="*" element={<StudentRoutes />} />
         </Route>
 
         {/* Teacher Routes - bảo vệ bằng TeacherRoute */}
-        <Route
-          path="/teacher/*"
-          element={
-            <TeacherRoute>
-              <TeacherDashboardLayout>
-                <TeacherRoutes />
-              </TeacherDashboardLayout>
-            </TeacherRoute>
-          }
-        >
+        <Route path="/teacher/*" element={
+          <TeacherRoute>
+            <TeacherDashboardLayout>
+              <TeacherRoutes />
+            </TeacherDashboardLayout>
+          </TeacherRoute>
+        }>
           <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="*" element={<TeacherRoutes />} />
         </Route>
 
         {/* Redirect any other routes to home */}
