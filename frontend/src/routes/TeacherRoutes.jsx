@@ -5,13 +5,12 @@ import ProfilePage from '../pages/teacher/profile/ProfilePage';
 import MaterialsPage from '../pages/teacher/TaiLieu/index';
 import TeacherClasses from '../pages/teacher/Classes/index';
 import TeacherStudents from '../pages/teacher/Students/index';
-
-import DiemDanh from '../pages/teacher/DiemDanh/index';
 import AssignmentPage from '../pages/teacher/BaiTap/index';
 import ExamList from '../pages/teacher/Exams/index';
 import CreateExam from '../pages/teacher/Exams/CreateExam';
 import ExamDetail from '../pages/teacher/Exams/ExamDetail';
 import EditExam from '../pages/teacher/Exams/EditExam';
+import DiemDanh from '../pages/teacher/DiemDanh';
 
 const TeacherRoutes = () => {
   return (
@@ -33,10 +32,8 @@ const TeacherRoutes = () => {
       <Route path="exams/:id" element={<ExamDetail />} />
       <Route path="exams/edit/:id" element={<EditExam />} />
 
-
       <Route path="schedule" element={<div className="p-6">Lịch giảng dạy (coming soon)</div>} />
       <Route path="attendance" element={<DiemDanh />} />
-      <Route path="attendance/:classId" element={<DiemDanh />} />
       <Route path="reports" element={<div className="p-6">Báo cáo (coming soon)</div>} />
       <Route path="settings" element={<div className="p-6">Cài đặt (coming soon)</div>} />
     </Routes>
