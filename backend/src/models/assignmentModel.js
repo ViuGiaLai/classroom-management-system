@@ -12,7 +12,6 @@ const assignmentSchema = new mongoose.Schema({
     ref: 'Organization',
     required: true,
   },
-
   title: {
     type: String,
     required: true,
@@ -30,6 +29,30 @@ const assignmentSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  type: {
+    type: String,
+    enum: ['essay', 'multiple_choice'],
+    default: 'essay',
+    required: true
+  },
+  questions: [{
+    question: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      enum: ['essay', 'multiple_choice'],
+      required: true
+    },
+    options: [String],
+    correctAnswer: Number,
+    points: {
+      type: Number,
+      default: 1,
+      min: 0
+    }
+  }],
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

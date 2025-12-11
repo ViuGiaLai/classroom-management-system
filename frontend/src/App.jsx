@@ -31,13 +31,15 @@ function App() {
           path="/admin/*"
           element={
             <AdminRoute>
-              <AdminDashboardLayout />
+              <AdminDashboardLayout>
+                <AdminRoutes />
+              </AdminDashboardLayout>
             </AdminRoute>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="*" element={<AdminRoutes />} />
         </Route>
+
         {/* Student Routes - bảo vệ bằng StudentRoute */}
         <Route
           path="/student/*"
@@ -48,10 +50,9 @@ function App() {
               </StudentDashboardLayout>
             </StudentRoute>
           }
-        />
-
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="*" element={<TeacherRoutes />} />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+        </Route>
 
         {/* Teacher Routes - bảo vệ bằng TeacherRoute */}
         <Route
@@ -63,10 +64,12 @@ function App() {
               </TeacherDashboardLayout>
             </TeacherRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+        </Route>
 
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="*" element={<TeacherRoutes />} />
+        {/* Redirect any other routes to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
