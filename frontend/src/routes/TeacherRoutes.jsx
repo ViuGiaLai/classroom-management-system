@@ -28,7 +28,6 @@ const TeacherRoutes = () => {
       <Route path="materials" element={<MaterialsPage />} />
       <Route path="materials" element={<Navigate to="/teacher/classes" replace />} />
       <Route path="grades" element={<div className="p-6">Điểm số (coming soon)</div>} />
-      <Route path="assignments" element={<div className="p-6">Bài tập (coming soon)</div>} />
       <Route path="schedule" element={<LichGiangDay />} />
       <Route path="lectures" element={<LichGiangDay />} />
       <Route path="assignments" element={<AssignmentPage />} />

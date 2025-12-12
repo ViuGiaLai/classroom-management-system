@@ -65,7 +65,7 @@ exports.getAttendanceByClass = async (req, res) => {
     if (date) filter.date = new Date(date);
 
     const records = await Attendance.find(filter)
-      .populate('student_id', 'full_name email')
+      .populate('student_id', 'full_name email student_code')
       .sort({ date: -1 });
 
     res.status(200).json(records);

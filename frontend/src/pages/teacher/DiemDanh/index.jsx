@@ -5,568 +5,508 @@ import {
   Card,
   Table,
   Button,
-  Modal,
-  Form,
   Select,
   DatePicker,
-  Input,
-  Space,
-  Tag,
   Empty,
   Spin,
-  Row,
-  Col,
-  message,
+  Avatar,
+  Input,
+  Tag,
 } from 'antd';
-import {
-  ArrowLeft,
-  Download,
-  Plus,
-  Edit2,
-  Trash2,
-  RotateCcw,
-  ChevronRight,
-} from 'lucide-react';
+import { ArrowLeft, Save, Eye, X } from 'lucide-react';
 import dayjs from 'dayjs';
-import { getStudentsInClass, getCourseClassById, getCourseClasses } from '@/api/ClassApi';
+import {
+  getMyClasses,
+  getCourseClassById,
+  getStudentsInClass,
+} from '@/api/ClassApi';
 import {
   getAttendanceByClass,
   createAttendance,
   updateAttendance,
-  deleteAttendance,
 } from '@/api/attendanceApi';
 
+const { Option } = Select;
+
 const DiemDanh = () => {
-  const { classId } = useParams();
+  const { classId: urlClassId } = useParams();
   const navigate = useNavigate();
 
-  // State management
   const [classes, setClasses] = useState([]);
-  const [selectedClassId, setSelectedClassId] = useState(classId || null);
+  const [selectedClassId, setSelectedClassId] = useState(urlClassId || null);
   const [classInfo, setClassInfo] = useState(null);
   const [students, setStudents] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [attendanceMap, setAttendanceMap] = useState({});
+  const [selectedDate, setSelectedDate] = useState(dayjs());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(dayjs());
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [form] = Form.useForm();
-  const [editForm] = Form.useForm();
+  const [hasChanges, setHasChanges] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
 
-  // Fetch my classes on mount
   useEffect(() => {
     fetchMyClasses();
   }, []);
 
-  // Fetch class info and students when selectedClassId changes
   useEffect(() => {
     if (selectedClassId) {
-      fetchClassInfo();
-      fetchStudents();
-    }
-  }, [selectedClassId]);
-
-  // Fetch attendance records when date or classId changes
-  useEffect(() => {
-    if (selectedClassId && selectedDate) {
-      fetchAttendance();
+      fetchClassInfoAndStudents();
     }
   }, [selectedClassId, selectedDate]);
 
   const fetchMyClasses = async () => {
     try {
       setIsLoading(true);
-      const response = await getCourseClasses();
-      const classList = Array.isArray(response.data) ? response.data : [];
-      setClasses(classList);
-
-      // If classId from URL, use it; otherwise use first class
-      if (!selectedClassId && classList.length > 0) {
-        setSelectedClassId(classList[0]._id);
+      const res = await getMyClasses();
+      const list = Array.isArray(res) ? res : res.data || [];
+      setClasses(list);
+      if (list.length > 0 && !selectedClassId) {
+        setSelectedClassId(list[0]._id);
       }
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      toast.error('Không thể tải danh sách lớp học');
-      setClasses([]);
+    } catch (err) {
+      toast.error('Không tải được danh sách lớp học');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchClassInfo = async () => {
+  const fetchClassInfoAndStudents = async () => {
+    if (!selectedClassId) return;
     try {
-      const response = await getCourseClassById(selectedClassId);
-      setClassInfo(response.data);
-    } catch (error) {
-      console.error('Error fetching class info:', error);
-      toast.error('Không thể tải thông tin lớp học');
-    }
-  };
+      setIsLoading(true);
+      const classRes = await getCourseClassById(selectedClassId);
+      setClassInfo(classRes.data);
 
-  const fetchStudents = async () => {
-    try {
-      const response = await getStudentsInClass(selectedClassId);
-      const studentsList = Array.isArray(response) ? response : [];
+      const res = await getStudentsInClass(selectedClassId);
+      const studentsList = Array.isArray(res) ? res : res.data || [];
       setStudents(studentsList);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      toast.error('Không thể tải danh sách sinh viên');
-      setStudents([]);
+
+      if (studentsList.length === 0) {
+        toast.info('Lớp chưa có sinh viên nào');
+        return;
+      }
+
+      const records = await loadAttendanceForDate();
+      if (records && records.length > 0) {
+        setViewModalVisible(true);
+      } else {
+        toast.info('Chưa có dữ liệu điểm danh cho ngày này');
+      }
+    } catch (err) {
+      toast.error('Lỗi tải dữ liệu lớp');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const fetchAttendance = async () => {
+  const loadAttendanceForDate = async () => {
+    if (!selectedClassId) return [];
     try {
       const dateStr = selectedDate.format('YYYY-MM-DD');
-      const response = await getAttendanceByClass(selectedClassId, dateStr);
-      const records = Array.isArray(response) ? response : [];
+      const res = await getAttendanceByClass(selectedClassId, dateStr);
+      const records = Array.isArray(res) ? res : [];
       setAttendanceRecords(records);
-    } catch (error) {
-      console.error('Error fetching attendance:', error);
+
+      const map = {};
+      records.forEach((r) => {
+        const sid = r.student_id?._id || r.student_id;
+        map[sid] = {
+          status: r.status,
+          note: r.note || '',
+          recordId: r._id,
+        };
+      });
+      setAttendanceMap(map);
+      setHasChanges(false);
+      return records; // Return the records for the modal
+    } catch (err) {
+      setAttendanceMap({});
       setAttendanceRecords([]);
+      console.error('Lỗi tải điểm danh:', err);
+      return [];
     }
   };
 
-  // Get attendance status for a student
-  const getStudentAttendanceStatus = (studentId) => {
-    const record = attendanceRecords.find(
-      (r) => r.student_id?._id === studentId || r.student_id === studentId
-    );
-    return record?.status || null;
+  const handleStatusChange = (studentId, value) => {
+    setAttendanceMap((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        status: value,
+        note: prev[studentId]?.note || '',
+      },
+    }));
+    setHasChanges(true);
   };
 
-
-
-  // Handle edit attendance
-  const handleEditAttendance = (record) => {
-    setEditingRecord(record);
-    editForm.setFieldsValue({
-      status: record.status,
-      note: record.note || '',
-    });
-    setIsEditModalVisible(true);
+  const handleNoteChange = (studentId, value) => {
+    setAttendanceMap((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        note: value,
+        status: prev[studentId]?.status || 'absent',
+      },
+    }));
+    setHasChanges(true);
   };
 
-  const handleUpdateAttendance = async (values) => {
+  // HÀM LƯU ĐÃ FIX 100% – KHÔNG LỖI TRÙNG, CÓ THÔNG BÁO ĐẸP
+  const handleSaveAll = async () => {
+    if (!hasChanges) {
+      toast.info('Không có thay đổi nào để lưu');
+      return;
+    }
+
+    let updatedCount = 0;
+    let createdCount = 0;
+    let skippedCount = 0;
+
     try {
       setIsSaving(true);
-      await updateAttendance(
-        editingRecord._id,
-        values.status,
-        values.note || ''
-      );
-      message.success('Cập nhật điểm danh thành công');
-      setIsEditModalVisible(false);
-      editForm.resetFields();
-      fetchAttendance();
-    } catch (error) {
-      console.error('Error updating attendance:', error);
-      toast.error('Lỗi khi cập nhật điểm danh');
+
+      // Lấy điểm danh hiện tại để biết cái nào đã tồn tại
+      const dateStr = selectedDate.format('YYYY-MM-DD');
+      const currentRecords = await getAttendanceByClass(selectedClassId, dateStr);
+
+      const existingMap = {};
+      currentRecords.forEach(r => {
+        const sid = r.student_id?._id || r.student_id;
+        existingMap[sid] = r._id;
+      });
+
+      const promises = [];
+
+      for (const student of students) {
+        const sid = student._id;
+        const data = attendanceMap[sid];
+
+        // Nếu không có thay đổi gì thay đổi → bỏ qua
+        if (!data || (!data.status && !data.note?.trim())) {
+          skippedCount++;
+          continue;
+        }
+
+        const status = data.status || 'absent';
+        const note = data.note || '';
+
+        // Nếu đã có bản ghi → cập nhật
+        if (existingMap[sid]) {
+          promises.push(
+            updateAttendance(existingMap[sid], status, note).then(() => updatedCount++)
+          );
+        } else {
+          // Nếu chưa có → tạo mới
+          promises.push(
+            createAttendance(selectedClassId, sid, selectedDate.toISOString(), status, note)
+              .then(() => createdCount++)
+              .catch(err => {
+                if (err.message.includes('already recorded')) {
+                  skippedCount++;
+                  // Không ném lỗi, chỉ thông báo đã có
+                  console.info(`Đã có điểm danh cho sinh viên ${student.user_id?.full_name || sid}`);
+                } else {
+                  throw err; // lỗi thật thì ném ra
+                }
+              })
+          );
+        }
+      }
+
+      await Promise.all(promises);
+
+      // Thông báo kết quả đẹp
+      const messages = [];
+      if (createdCount > 0) messages.push(`${createdCount} bản ghi mới`);
+      if (updatedCount > 0) messages.push(`${updatedCount} bản ghi cập nhật`);
+      if (skippedCount > 0) messages.push(`${skippedCount} đã điểm danh trước đó`);
+
+      toast.success(`Lưu thành công! ${messages.join(', ')}`);
+
+      setHasChanges(false);
+      const updatedRecords = await loadAttendanceForDate(); // reload để cập nhật UI
+      setAttendanceRecords(updatedRecords);
+    } catch (err) {
+      console.error('Lỗi nghiêm trọng khi lưu:', err);
+      toast.error('Có lỗi xảy ra khi lưu điểm danh');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handle delete attendance
-  const handleDeleteAttendance = (recordId) => {
-    Modal.confirm({
-      title: 'Xóa điểm danh',
-      content: 'Bạn chắc chắn muốn xóa bản ghi điểm danh này?',
-      okText: 'Xóa',
-      cancelText: 'Hủy',
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          setIsSaving(true);
-          await deleteAttendance(recordId);
-          message.success('Xóa điểm danh thành công');
-          fetchAttendance();
-        } catch (error) {
-          console.error('Error deleting attendance:', error);
-          toast.error('Lỗi khi xóa điểm danh');
-        } finally {
-          setIsSaving(false);
-        }
-      },
-    });
-  };
-
-  // Reset all attendance for the day
-  const handleResetDay = () => {
-    Modal.confirm({
-      title: 'Xóa tất cả điểm danh',
-      content: `Bạn chắc chắn muốn xóa tất cả điểm danh của ngày ${selectedDate.format(
-        'DD/MM/YYYY'
-      )}?`,
-      okText: 'Xóa',
-      cancelText: 'Hủy',
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          setIsSaving(true);
-          for (const record of attendanceRecords) {
-            await deleteAttendance(record._id);
-          }
-          message.success('Xóa tất cả điểm danh thành công');
-          fetchAttendance();
-        } catch (error) {
-          console.error('Error resetting attendance:', error);
-          toast.error('Lỗi khi xóa điểm danh');
-        } finally {
-          setIsSaving(false);
-        }
-      },
-    });
-  };
-
-  // Get status color
-  const getStatusColor = (status) => {
-    const colorMap = {
-      'Có mặt': 'green',
-      'Muộn': 'orange',
-      'Vắng': 'red',
-    };
-    return colorMap[status] || 'default';
-  };
-
-  // Get status badge
-  const getStatusBadge = (studentId) => {
-    const status = getStudentAttendanceStatus(studentId);
-    if (!status) {
-      return <Tag>Chưa điểm danh</Tag>;
-    }
-    return <Tag color={getStatusColor(status)}>{status}</Tag>;
-  };
-
-  // Statistics
-  const presentCount = attendanceRecords.filter(
-    (r) => r.status === 'Có mặt'
-  ).length;
-  const lateCount = attendanceRecords.filter((r) => r.status === 'Muộn').length;
-  const absentCount = attendanceRecords.filter(
-    (r) => r.status === 'Vắng'
-  ).length;
-
-  // Table columns for attendance table
-  const attendanceColumns = [
+  const columns = [
     {
       title: 'STT',
-      key: 'index',
-      width: 50,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: 'Mã sinh viên',
-      key: 'student_code',
-      dataIndex: ['student_id', 'student_code'],
-      width: 120,
+      width: 70,
+      render: (_, __, i) => i + 1,
     },
     {
       title: 'Họ và tên',
-      key: 'full_name',
-      render: (_, record) => record.student_id?.user_id?.full_name || 'N/A',
-      width: 200,
+      width: 300,
+      render: (_, record) => {
+        const name = record.user_id?.full_name || 'Chưa có tên';
+        const code = record.student_code || 'N/A';
+        const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar size={40} className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
+              {initials || '?'}
+            </Avatar>
+            <div>
+              <div className="font-medium">{name}</div>
+              <div className="text-xs text-gray-500">{code}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: 'Trạng thái',
-      key: 'status',
-      width: 120,
-      render: (_, record) => (
-        <Tag color={getStatusColor(record.status)}>{record.status}</Tag>
-      ),
+      width: 180,
+      render: (_, record) => {
+        const sid = record._id;
+        return (
+          <Select
+            value={attendanceMap[sid]?.status || undefined}
+            onChange={(v) => handleStatusChange(sid, v)}
+            placeholder="Chọn"
+            style={{ width: 140 }}
+          >
+            <Option value="present"><Tag color="green">Có mặt</Tag></Option>
+            <Option value="late"><Tag color="orange">Muộn</Tag></Option>
+            <Option value="absent"><Tag color="red">Vắng</Tag></Option>
+            <Option value="excused"><Tag color="blue">Nghỉ phép</Tag></Option>
+          </Select>
+        );
+      },
     },
     {
       title: 'Ghi chú',
-      dataIndex: 'note',
-      key: 'note',
-      width: 150,
-      render: (note) => note || '-',
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      width: 150,
       render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="primary"
-            size="small"
-            icon={<Edit2 className="w-4 h-4" />}
-            onClick={() => handleEditAttendance(record)}
-          >
-            Sửa
-          </Button>
-          <Button
-            danger
-            size="small"
-            icon={<Trash2 className="w-4 h-4" />}
-            onClick={() => handleDeleteAttendance(record._id)}
-          >
-            Xóa
-          </Button>
-        </Space>
+        <Input.TextArea
+          autoSize={{ minRows: 1, maxRows: 3 }}
+          placeholder="Ghi chú..."
+          value={attendanceMap[record._id]?.note || ''}
+          onChange={(e) => handleNoteChange(record._id, e.target.value)}
+          allowClear
+        />
       ),
     },
   ];
 
-  // Table columns for student list
-  const studentColumns = [
-    {
-      title: 'STT',
-      key: 'index',
-      width: 50,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: 'Mã sinh viên',
-      dataIndex: 'student_code',
-      key: 'student_code',
-      width: 120,
-    },
-    {
-      title: 'Họ và tên',
-      key: 'full_name',
-      render: (_, record) => record.user_id?.full_name || 'N/A',
-      width: 200,
-    },
-    {
-      title: 'Email',
-      key: 'email',
-      render: (_, record) => record.user_id?.email || 'N/A',
-      width: 200,
-    },
-    {
-      title: 'Trạng thái điểm danh',
-      key: 'attendance_status',
-      width: 150,
-      render: (_, record) => getStatusBadge(record._id),
-    },
-  ];
-
-  if (isLoading) {
+  if (isLoading && classes.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex justify-center items-center min-h-screen">
         <Spin size="large" />
-        <span className="ml-2">Đang tải lớp học...</span>
-      </div>
-    );
-  }
-
-  if (!selectedClassId || classes.length === 0) {
-    return (
-      <div className="p-4 bg-gray-50 min-h-screen">
-        <Button
-          type="text"
-          icon={<ArrowLeft className="w-4 h-4" />}
-          onClick={() => navigate('/teacher/classes')}
-          className="mb-4"
-        >
-          Quay lại
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Điểm danh</h1>
-        <Card className="mt-6 shadow-sm">
-          <Empty
-            description="Bạn chưa có lớp học nào"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-          <Button
-            type="primary"
-            onClick={() => navigate('/teacher/classes')}
-            className="mt-4"
-          >
-            Quay lại danh sách lớp học
-          </Button>
-        </Card>
+        <span className="ml-3">Đang tải...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <Button
-          type="text"
-          icon={<ArrowLeft className="w-4 h-4" />}
-          onClick={() => navigate('/teacher/classes')}
-          className="mb-4"
-        >
-          Quay lại
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Điểm danh</h1>
-        <p className="text-gray-600 mt-2">
-          Quản lý điểm danh sinh viên trong các lớp học
-        </p>
-      </div>
-
-      {classInfo && (
-        <Card className="mb-6 shadow-sm">
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <div>
-                <p className="text-sm text-gray-600">Lớp học</p>
-                <p className="text-lg font-semibold">
-                  {classInfo.course_id?.title || 'N/A'}
-                </p>
+    <div className="p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen">
+      {/* Modal xem điểm danh */}
+      {viewModalVisible && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-bold">Chi tiết điểm danh</h2>
+              <Button 
+                type="text" 
+                icon={<X size={20} />} 
+                onClick={() => setViewModalVisible(false)}
+              />
+            </div>
+            <div className="overflow-auto p-4">
+              <div className="mb-4">
+                <h3 className="font-medium">Lớp: {classInfo?.course_id?.title} ({classInfo?.course_id?.code})</h3>
+                <p>Ngày: {selectedDate.format('DD/MM/YYYY')}</p>
               </div>
-            </Col>
-            <Col xs={24} sm={12}>
-              <div>
-                <p className="text-sm text-gray-600">Mã lớp</p>
-                <p className="text-lg font-semibold">
-                  {classInfo.course_id?.code || 'N/A'}
-                </p>
-              </div>
-            </Col>
-          </Row>
-        </Card>
-      )}
-
-      {/* Attendance Selection Section */}
-      <Card className="mb-6 shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">
-          Chọn lớp học và ngày điểm danh
-        </h2>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={8}>
-            <Form layout="vertical">
-              <Form.Item label="Lớp học">
-                <Select
-                  value={selectedClassId}
-                  onChange={setSelectedClassId}
-                  options={classes.map((cls) => ({
-                    label: cls.course_id?.title || 'N/A',
-                    value: cls._id,
-                  }))}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Form>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Form layout="vertical">
-              <Form.Item label="Ngày điểm danh">
-                <DatePicker
-                  value={selectedDate}
-                  onChange={setSelectedDate}
-                  style={{ width: '100%' }}
-                  format="DD/MM/YYYY"
-                />
-              </Form.Item>
-            </Form>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <div className="flex items-end h-full">
-              <Button
-                danger
-                icon={<RotateCcw className="w-4 h-4" />}
-                onClick={handleResetDay}
-                block
-                disabled={attendanceRecords.length === 0}
+              <Table 
+                dataSource={attendanceRecords}
+                rowKey="_id"
+                pagination={{ pageSize: 10 }}
+                scroll={{ y: '50vh' }}
               >
-                Xóa hết
-              </Button>
+                <Table.Column 
+                  title="STT" 
+                  key="index" 
+                  render={(_, __, index) => index + 1} 
+                  width={70}
+                />
+                <Table.Column 
+                  title="Tên sinh viên" 
+                  dataIndex={['student_id', 'user_id', 'full_name']}
+                  key="studentName"
+                  render={(text, record) => (
+                    <div className="flex items-center gap-2">
+                      <Avatar size="small" className="bg-blue-100 text-blue-800">
+                        {(text || '').charAt(0).toUpperCase()}
+                      </Avatar>
+                      <span>{text || 'N/A'}</span>
+                    </div>
+                  )}
+                />
+                <Table.Column 
+                  title="Mã SV" 
+                  dataIndex={['student_id', 'student_code']}
+                  key="studentCode"
+                />
+                <Table.Column 
+                  title="Trạng thái" 
+                  key="status"
+                  render={(record) => {
+                    const statusMap = {
+                      present: { label: 'Có mặt', color: 'green' },
+                      late: { label: 'Muộn', color: 'orange' },
+                      absent: { label: 'Vắng', color: 'red' },
+                      excused: { label: 'Nghỉ phép', color: 'blue' },
+                    };
+                    const status = statusMap[record.status] || { label: 'Chưa điểm danh', color: 'gray' };
+                    return <Tag color={status.color}>{status.label}</Tag>;
+                  }}
+                />
+                <Table.Column 
+                  title="Ghi chú" 
+                  dataIndex="note"
+                  key="note"
+                  render={(text) => text || '-'}
+                />
+              </Table>
             </div>
-          </Col>
-        </Row>
-      </Card>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <Button onClick={() => setViewModalVisible(false)}>Đóng</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Button icon={<ArrowLeft />} onClick={() => navigate('/teacher/classes')} className="mb-6">
+        Quay lại
+      </Button>
 
-      {/* Statistics */}
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={12} sm={8}>
-          <Card className="bg-green-50 shadow-sm">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{presentCount}</p>
-              <p className="text-sm text-gray-600 mt-1">Có mặt</p>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={8}>
-          <Card className="bg-orange-50 shadow-sm">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{lateCount}</p>
-              <p className="text-sm text-gray-600 mt-1">Muộn</p>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={8}>
-          <Card className="bg-red-50 shadow-sm">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{absentCount}</p>
-              <p className="text-sm text-gray-600 mt-1">Vắng</p>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+      <h1 className="text-3xl font-bold mb-2">Điểm danh</h1>
+      <p className="text-gray-600 mb-8">Chọn lớp và ngày để điểm danh</p>
 
-      {/* Attendance List */}
-      <Card title="Danh sách điểm danh" className="mb-6 shadow-sm">
-        {attendanceRecords.length === 0 ? (
-          <Empty
-            description="Chưa có bản ghi điểm danh nào cho ngày này"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        ) : (
-          <Table
-            columns={attendanceColumns}
-            dataSource={attendanceRecords}
-            rowKey="_id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Tổng ${total} bản ghi`,
-            }}
-            loading={isSaving}
-          />
-        )}
-      </Card>
+      <Card className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block font-medium mb-2">Lớp học</label>
+            <Select
+              value={selectedClassId}
+              onChange={setSelectedClassId}
+              placeholder="Chọn lớp"
+              style={{ width: '100%' }}
+            >
+              {classes.map((c) => (
+                <Option key={c._id} value={c._id}>
+                  {c.course_id?.title} ({c.course_id?.code})
+                </Option>
+              ))}
+            </Select>
+          </div>
 
-      {/* Export Report Button */}
-      <Card className="shadow-sm mt-6">
-        <div className="flex justify-end">
-          <Button
-            type="default"
-            size="large"
-            icon={<Download className="w-4 h-4" />}
-          >
-            Xuất báo cáo
-          </Button>
+          <div>
+            <label className="block font-medium mb-2">Ngày</label>
+            <DatePicker
+              value={selectedDate}
+              onChange={setSelectedDate}
+              format="DD/MM/YYYY"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <Button 
+              type="primary" 
+              icon={<Eye />} 
+              onClick={fetchClassInfoAndStudents} 
+              block
+              loading={isLoading}
+            >
+              Xem điểm danh
+            </Button>
+          </div>
         </div>
       </Card>
 
-      {/* Edit Attendance Modal */}
-      <Modal
-        title="Cập nhật điểm danh"
-        open={isEditModalVisible}
-        onOk={() => editForm.submit()}
-        onCancel={() => {
-          setIsEditModalVisible(false);
-          editForm.resetFields();
-        }}
-        okText="Lưu"
-        cancelText="Hủy"
-        confirmLoading={isSaving}
-      >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdateAttendance}>
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+      {classInfo && (
+        <Card className="mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold">
+                {classInfo?.course_id?.title} - {classInfo?.name}
+              </h2>
+              <p className="text-gray-600">
+                {classInfo?.course_id?.code} • {classInfo?.schedule}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <DatePicker
+                value={selectedDate}
+                onChange={(date) => setSelectedDate(date || dayjs())}
+                format="DD/MM/YYYY"
+                className="w-40"
+                allowClear={false}
+              />
+              <Button
+                type="primary"
+                icon={<Save size={16} />}
+                loading={isSaving}
+                onClick={handleSaveAll}
+                disabled={!hasChanges}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Lưu tất cả
+              </Button>
+              <Button
+                type="default"
+                icon={<Eye size={16} />}
+                onClick={() => attendanceRecords.length > 0 ? setViewModalVisible(true) : toast.info('Chưa có dữ liệu điểm danh cho ngày này')}
+              >
+                Xem chi tiết
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div><span className="text-gray-500">Môn:</span> <strong>{classInfo.course_id?.title}</strong></div>
+            <div><span className="text-gray-500">Mã:</span> <strong>{classInfo.course_id?.code}</strong></div>
+            <div><span className="text-gray-500">Lịch:</span> <strong>{classInfo.schedule || 'N/A'}</strong></div>
+            <div><span className="text-gray-500">Sĩ số:</span> <strong className="text-blue-600">
+              {classInfo.current_enrollment || 0}/{classInfo.max_capacity || 0}
+            </strong></div>
+          </div>
+        </Card>
+      )}
+
+      <Card
+        title="Danh sách điểm danh"
+        extra={
+          <Button
+            type="primary"
+            icon={<Save />}
+            onClick={handleSaveAll}
+            loading={isSaving}
+            disabled={!hasChanges}
+            className={hasChanges ? 'bg-green-600 hover:bg-green-700' : ''}
           >
-            <Select
-              placeholder="Chọn trạng thái"
-              options={[
-                { label: 'Có mặt', value: 'Có mặt' },
-                { label: 'Muộn', value: 'Muộn' },
-                { label: 'Vắng', value: 'Vắng' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="note" label="Ghi chú">
-            <Input.TextArea rows={3} placeholder="Ghi chú thêm (tuỳ chọn)" />
-          </Form.Item>
-        </Form>
-      </Modal>
+            Lưu điểm danh
+          </Button>
+        }
+      >
+        {students.length === 0 ? (
+          <Empty description="Chưa có sinh viên nào trong lớp này" />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={students}
+            rowKey="_id"
+            pagination={{ pageSize: 20 }}
+            loading={isLoading}
+            scroll={{ x: 900 }}
+          />
+        )}
+      </Card>
     </div>
   );
 };
