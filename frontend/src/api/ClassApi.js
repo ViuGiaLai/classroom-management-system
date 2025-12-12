@@ -38,3 +38,9 @@ export const getMyStudents = async () => {
   const response = await api.get('/classes/teacher/my-students');
   return response.data;
 };
+
+// Lấy danh sách lớp học đã enrolled của sinh viên hiện tại
+export const getEnrolledClasses = async () => {
+  const response = await api.get('/classes/student/enrolled');
+  return response;
+};

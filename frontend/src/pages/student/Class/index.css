@@ -1,0 +1,109 @@
+.student-classes-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.class-card {
+  transition: all 0.18s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.class-card:hover {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-3px);
+}
+
+.class-card .ant-card-body {
+  padding: 14px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .student-classes-container {
+    padding: 16px !important;
+  }
+
+  .class-card .ant-card-body {
+    padding: 12px;
+  }
+
+  .student-classes-container h1 {
+    font-size: 20px;
+  }
+}
+
+/* Compact layout styles */
+.student-classes-container.compact .header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.student-classes-container.compact .title {
+  font-size: 20px;
+  margin: 0;
+}
+
+.student-classes-container.compact .subtitle {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 0;
+}
+
+.class-card.compact {
+  border-radius: 8px;
+}
+
+.class-card.compact .card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.class-card.compact .code {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.class-card.compact .name {
+  font-size: 16px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.class-card .card-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 12px;
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.info-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.view-btn {
+  padding: 8px 12px;
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 8px;
+  height: 40px;
+}
+
+.class-card {
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.class-card.compact .ant-card-body {
+  padding: 18px;
+}

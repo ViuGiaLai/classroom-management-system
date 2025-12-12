@@ -14,7 +14,6 @@ import ExamList from '../pages/teacher/Exams/index';
 import CreateExam from '../pages/teacher/Exams/CreateExam';
 import ExamDetail from '../pages/teacher/Exams/ExamDetail';
 import EditExam from '../pages/teacher/Exams/EditExam';
-import DiemDanh from '../pages/teacher/DiemDanh';
 
 const TeacherRoutes = () => {
   return (
