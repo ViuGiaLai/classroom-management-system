@@ -7,6 +7,7 @@ import TeacherClasses from '../pages/teacher/Classes/index';
 import TeacherStudents from '../pages/teacher/Students/index';
 
 import DiemDanh from '../pages/teacher/DiemDanh/index';
+import LichGiangDay from '../pages/teacher/LichGiangDay/index';
 import AssignmentPage from '../pages/teacher/BaiTap/index';
 import ExamList from '../pages/teacher/Exams/index';
 import CreateExam from '../pages/teacher/Exams/CreateExam';
@@ -26,13 +27,14 @@ const TeacherRoutes = () => {
       <Route path="materials" element={<MaterialsPage />} />
       <Route path="materials" element={<Navigate to="/teacher/classes" replace />} />
       <Route path="grades" element={<div className="p-6">Điểm số (coming soon)</div>} />
+      <Route path="assignments" element={<div className="p-6">Bài tập (coming soon)</div>} />
+      <Route path="schedule" element={<LichGiangDay />} />
+      <Route path="lectures" element={<LichGiangDay />} />
       <Route path="assignments" element={<AssignmentPage />} />
-      {/* kiểm tra */}
       <Route path="exams" element={<ExamList />} />
       <Route path="exams/create" element={<CreateExam />} />
       <Route path="exams/:id" element={<ExamDetail />} />
       <Route path="exams/edit/:id" element={<EditExam />} />
-
 
       <Route path="schedule" element={<div className="p-6">Lịch giảng dạy (coming soon)</div>} />
       <Route path="attendance" element={<DiemDanh />} />
