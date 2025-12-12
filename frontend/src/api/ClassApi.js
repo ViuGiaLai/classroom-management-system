@@ -38,3 +38,24 @@ export const getMyStudents = async () => {
   const response = await api.get('/classes/teacher/my-students');
   return response.data;
 };
+
+
+export const getAllClasses = async () => {
+  try {
+    const response = await api.get('/classes');
+    return response.data; // Return the data directly
+  } catch (error) {
+    console.error('Error fetching all classes:', error);
+    throw error; // Re-throw to handle in the component
+  }
+};
+
+export const getEnrolledClasses = async () => {
+  try {
+    const response = await api.get('/classes/student/enrolled');
+    return response.data; // Return the data directly
+  } catch (error) {
+    console.error('Error fetching enrolled classes:', error);
+    throw error; // Re-throw to handle in the component
+  }
+};
