@@ -51,66 +51,57 @@ const LichGiangDay = () => {
     }
   };
 
-  // Naive parsing: look for "Thứ X" or "CN" inside schedule string
-  const detectDay = (scheduleStr) => {
-    if (!scheduleStr) return null;
-    const s = scheduleStr.toLowerCase();
-    if (/th[ứu]?\s*2|thu\s*2/.test(s)) return 'thu2';
-    if (/th[ứu]?\s*3|thu\s*3/.test(s)) return 'thu3';
-    if (/th[ứu]?\s*4|thu\s*4/.test(s)) return 'thu4';
-    if (/th[ứu]?\s*5|thu\s*5/.test(s)) return 'thu5';
-    if (/th[ứu]?\s*6|thu\s*6/.test(s)) return 'thu6';
-    if (/th[ứu]?\s*7|thu\s*7/.test(s)) return 'thu7';
-    if (/cn|ch[uủ] nh[áa]t/.test(s)) return 'cn';
-    return null;
-  };
+  const parseSchedule = (scheduleStr) => {
+    if (!scheduleStr) return { day: null, times: [], room: null };
+    
+    // Handle format: "Thứ 3 - Tiết 4-6, Phòng A102"
+    const dayMatch = scheduleStr.match(/Thứ\s*([2-7]|CN|Chủ nhật)/i);
+    const timeMatch = scheduleStr.match(/Tiết\s*(\d+)-(\d+)/i);
+    const roomMatch = scheduleStr.match(/Phòng\s*([A-Za-z0-9\-\s]+)/i);
+    
+    // Map day names to keys
+    const dayMap = {
+      'thứ 2': 'thu2', '2': 'thu2', 'thu2': 'thu2',
+      'thứ 3': 'thu3', '3': 'thu3', 'thu3': 'thu3',
+      'thứ 4': 'thu4', '4': 'thu4', 'thu4': 'thu4',
+      'thứ 5': 'thu5', '5': 'thu5', 'thu5': 'thu5',
+      'thứ 6': 'thu6', '6': 'thu6', 'thu6': 'thu6',
+      'thứ 7': 'thu7', '7': 'thu7', 'thu7': 'thu7',
+      'chủ nhật': 'cn', 'cn': 'cn', 'chu nhat': 'cn'
+    };
 
-  const extractTime = (scheduleStr) => {
-    if (!scheduleStr) return null;
-    // try to capture multiple time ranges
-    const matches = scheduleStr.match(/(\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2})/g);
-    return matches ? matches : null;
-  };
-
-  const extractRoom = (scheduleStr) => {
-    if (!scheduleStr) return null;
-    const match = scheduleStr.match(/ph[oò]ng\s*[:]?\s*([A-Za-z0-9\-\s]+)/i);
-    return match ? match[1].trim() : null;
-  };
-
-  // create placeholder schedules for empty days
-  const generatePlaceholders = (dayKey) => {
-    const samples = [
-      { title: 'Lập trình Web', time: '07:00 - 09:00', room: 'A101', code: 'Lớp CNTT-K18A', students: 45 },
-      { title: 'Lập trình Web', time: '13:00 - 15:00', room: 'A102', code: 'Lớp CNTT-K18B', students: 42 },
-      { title: 'Phát triển ứng dụng Web', time: '08:00 - 11:00', room: 'B201', code: 'Lớp CNTT-K17A', students: 38 },
-      { title: 'Thực hành Web', time: '15:00 - 17:00', room: 'Lab 3', code: 'Lớp CNTT-K16C', students: 40 },
-    ];
-
-    // choose 1-2 samples depending on dayKey to make page look populated
-    const idx = Math.abs(dayKey.split('').reduce((a,b)=>a+b.charCodeAt(0),0)) % samples.length;
-    const arr = [];
-    arr.push({
-      _id: `ph-${dayKey}-1`,
-      course_id: { title: samples[idx].title, code: samples[idx].code },
-      schedule: samples[idx].time + ' Phòng ' + samples[idx].room,
-      department_id: { name: 'Công nghệ thông tin' },
-      current_enrollment: samples[idx].students,
-    });
-    // optionally add second sample for some days
-    if (idx % 2 === 0) {
-      const s2 = samples[(idx + 1) % samples.length];
-      arr.push({
-        _id: `ph-${dayKey}-2`,
-        course_id: { title: s2.title, code: s2.code },
-        schedule: s2.time + ' Phòng ' + s2.room,
-        department_id: { name: 'Công nghệ thông tin' },
-        current_enrollment: s2.students,
-      });
+    // Get day key
+    const dayKey = dayMatch ? dayMatch[0].toLowerCase() : '';
+    const day = dayMap[dayKey] || 'other';
+    
+    // Convert period to time (e.g., Tiết 4-6 -> 09:30-11:00)
+    let times = [];
+    if (timeMatch) {
+      const startPeriod = parseInt(timeMatch[1]);
+      const endPeriod = parseInt(timeMatch[2]);
+      
+      // Convert period to time (each period is 1.5 hours, starting from 7:00)
+      const startHour = 7 + Math.floor((startPeriod - 1) / 2);
+      const startMinute = (startPeriod % 2 === 1) ? '00' : '30';
+      const endHour = 7 + Math.floor(endPeriod / 2);
+      const endMinute = (endPeriod % 2 === 0) ? '00' : '30';
+      
+      times = [`${startHour}:${startMinute}-${endHour}:${endMinute}`];
     }
-
-    return arr;
+    
+    // Extract room
+    const room = roomMatch ? roomMatch[1].trim() : null;
+    
+    return { day, times, room };
   };
+  
+  // For backward compatibility
+  const detectDay = (scheduleStr) => parseSchedule(scheduleStr).day;
+  const extractTime = (scheduleStr) => parseSchedule(scheduleStr).times;
+  const extractRoom = (scheduleStr) => parseSchedule(scheduleStr).room;
+
+  // No placeholders needed - we'll show a message in the UI
+  const generatePlaceholders = () => [];
 
   const groupByDay = () => {
     const map = {
@@ -125,10 +116,25 @@ const LichGiangDay = () => {
     };
 
     classes.forEach((c) => {
-      const sched = c.schedule || '';
-      const dayKey = detectDay(sched) || 'other';
-      map[dayKey] = map[dayKey] || [];
-      map[dayKey].push(c);
+      if (!c || !c.schedule) return;
+      
+      const { day: dayKey } = parseSchedule(c.schedule);
+      const finalDayKey = dayKey || 'other';
+      
+      if (map[finalDayKey] !== undefined) {
+        map[finalDayKey].push(c);
+      } else {
+        map.other.push(c);
+      }
+    });
+
+    // Sort each day's classes by time
+    Object.keys(map).forEach(day => {
+      map[day].sort((a, b) => {
+        const timeA = parseSchedule(a.schedule).times[0] || '';
+        const timeB = parseSchedule(b.schedule).times[0] || '';
+        return timeA.localeCompare(timeB);
+      });
     });
 
     setGrouped(map);
@@ -145,9 +151,11 @@ const LichGiangDay = () => {
 
   // small helper to render class card inside day
   const renderClassItem = (cls) => {
-    const times = extractTime(cls.schedule) || [];
-    const room = extractRoom(cls.schedule) || '';
+    if (!cls) return null;
+    
+    const { times, room } = parseSchedule(cls.schedule || '');
     const studentCount = cls.current_enrollment || 0;
+    const courseCode = cls.course_id?.code || cls._id?.substring(0, 8) || 'N/A';
 
     // pick color depending on course id hash
     const colors = ['blue', 'cyan', 'purple', 'geekblue', 'magenta'];
@@ -170,8 +178,13 @@ const LichGiangDay = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold">{cls.course_id?.title || 'Không tên'}</h3>
-              <p className="text-sm text-gray-600 mt-1">Lớp {cls.course_id?.code || cls._id} • {cls.department_id?.name || ''}</p>
+              <h3 className="text-lg font-semibold">{cls.course_id?.title || 'Môn học chưa có tên'}</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Mã lớp: {courseCode} • Số SV: {studentCount}/{cls.max_capacity || 'N/A'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Học kỳ: {cls.semester || 'N/A'} - {cls.year || 'N/A'}
+              </p>
             </div>
           </div>
 
@@ -213,11 +226,12 @@ const LichGiangDay = () => {
         <Card key={d.key} className="mb-4">
           <h3 className="text-lg font-semibold mb-3">{d.label}</h3>
           <div>
-            {(grouped[d.key] && grouped[d.key].length > 0) ? (
+            {grouped[d.key]?.length > 0 ? (
               grouped[d.key].map((cls) => renderClassItem(cls))
             ) : (
-              // render placeholder schedules to match mockup
-              generatePlaceholders(d.key).map((ph) => renderClassItem(ph))
+              <div className="text-center py-4 text-gray-400">
+                Không có lịch học
+              </div>
             )}
           </div>
         </Card>
