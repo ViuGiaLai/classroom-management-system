@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 const TaiLieu = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [viewFile, setViewFile] = useState(null);
-        const { user } = useAuth();
+    const { user } = useAuth();
     const [materials, setMaterials] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isTeacher, setIsTeacher] = useState(false);
