@@ -201,9 +201,10 @@ exports.recalculateEnrollment = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+// [GET] /api/classes/:id/students - Lấy sinh viên của đúng lớp này
 exports.getStudentsInClass = async (req, res) => {
   try {
-    const organization_id = req.user?.organization_id || req.query.organization_id;
+    const organization_id = req.user?.organization_id;
     const userRole = req.user?.role;
     const userId = req.user?.id;
 
@@ -211,66 +212,46 @@ exports.getStudentsInClass = async (req, res) => {
       return res.status(400).json({ message: 'organization_id is required' });
     }
 
-    // Kiểm tra lớp học có tồn tại không
     const classItem = await Class.findOne({
       _id: req.params.id,
       organization_id
     });
 
     if (!classItem) {
-      return res.status(404).json({ message: 'Class not found in your organization' });
+      return res.status(404).json({ message: 'Class not found' });
     }
 
-    // Nếu là teacher, kiểm tra xem họ có phải là lecturer của lớp này không
+    // Kiểm tra quyền giáo viên
     if (userRole === 'teacher') {
-      // Tìm teacher từ user_id
-      const teacher = await Teacher.findOne({
-        user_id: userId,
-        organization_id
-      });
-
-      if (!teacher) {
-        return res.status(403).json({ message: 'Teacher not found' });
-      }
-
-      // Kiểm tra xem teacher có phải là lecturer của lớp này không
-      if (classItem.lecturer_id.toString() !== teacher._id.toString()) {
-        return res.status(403).json({ 
-          message: 'Bạn không có quyền xem danh sách sinh viên của lớp học này' 
-        });
-      }
-    }
-    // Nếu là admin, cho phép xem tất cả
-
-    const cacheKey = `class:${req.params.id}:students:${organization_id}`;
-    if (redisClient) {
-      const cachedData = await redisClient.get(cacheKey);
-      if (cachedData) {
-        return res.status(200).json(JSON.parse(cachedData));
+      const teacher = await Teacher.findOne({ user_id: userId, organization_id });
+      if (!teacher || classItem.lecturer_id.toString() !== teacher._id.toString()) {
+        return res.status(403).json({ message: 'Bạn không có quyền xem lớp này' });
       }
     }
 
-    const userIds = await Attendance.distinct('student_id', {
+    // LẤY CHỈ SINH VIÊN CỦA LỚP NÀY từ Attendance
+    const studentIds = await Attendance.distinct('student_id', {
       class_id: req.params.id,
       organization_id
     });
 
+    if (studentIds.length === 0) {
+      return res.status(200).json([]); // Đúng! Chưa có ai điểm danh → trả rỗng
+    }
+
     const students = await Student.find({
-      user_id: { $in: userIds },
+      _id: { $in: studentIds },
       organization_id,
     })
-      .populate('user_id', 'full_name email')
+      .populate('user_id', 'full_name email avatar')
       .populate('faculty_id', 'name')
       .populate('department_id', 'name')
-      .select('student_code user_id faculty_id department_id status')
+      .select('student_code status administrative_class')
       .sort({ student_code: 1 });
 
-    if (redisClient) {
-      await redisClient.setEx(cacheKey, 300, JSON.stringify(students));
-    }
     res.status(200).json(students);
   } catch (err) {
-    console.error('Error fetching students in class:', err);
+    console.error('Error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -325,6 +306,63 @@ exports.getMyClasses = async (req, res) => {
     res.status(200).json(result);
   } catch (err) {
     console.error('Error fetching teacher classes:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+// [GET] /api/classes/teacher/my-students - Lấy TẤT CẢ sinh viên từng học với giáo viên (dù chưa điểm danh)
+exports.getMyStudents = async (req, res) => {
+  try {
+    const organization_id = req.user?.organization_id;
+    const userId = req.user?.id;
+
+    if (!organization_id || !userId) {
+      return res.status(400).json({ message: 'Missing required information' });
+    }
+
+    // Tìm teacher
+    const teacher = await Teacher.findOne({ 
+      user_id: userId, 
+      organization_id 
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    // Lấy tất cả lớp mà teacher này dạy
+    const teacherClasses = await Class.find({
+      lecturer_id: teacher._id,
+      organization_id
+    }).select('_id');
+
+    if (teacherClasses.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const classIds = teacherClasses.map(c => c._id);
+
+    // Lấy tất cả student_id từ Attendance (có điểm danh rồi)
+    const attendedStudentIds = await Attendance.distinct('student_id', {
+      class_id: { $in: classIds },
+      organization_id
+    });
+
+    const students = await Student.find({
+      _id: { $in: attendedStudentIds },
+      organization_id
+    })
+      .populate('user_id', 'full_name email')
+      .populate('faculty_id', 'name')
+      .populate('department_id', 'name')
+      .select('student_code status administrative_class year_of_admission')
+      .sort({ student_code: 1 });
+
+    // Loại bỏ trùng (nếu sinh viên học nhiều lớp của cùng giáo viên)
+    const uniqueStudents = Array.from(new Map(students.map(s => [s._id.toString(), s])).values());
+
+    res.status(200).json(uniqueStudents); // Trả về mảng trực tiếp
+  } catch (err) {
+    console.error('Error in getMyStudents:', err);
     res.status(500).json({ message: err.message });
   }
 };

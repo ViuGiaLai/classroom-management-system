@@ -1,20 +1,19 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import TeacherDashboard from '../pages/teacher/Dashboard';
-import ProfilePage from '../pages/teacher/profile/ProfilePage';
-import MaterialsPage from '../pages/teacher/TaiLieu/index';
-import TeacherClasses from '../pages/teacher/Classes/index';
-import TeacherStudents from '../pages/teacher/Students/index';
+import TeacherDashboard from '@/pages/teacher/Dashboard';
+import ProfilePage from '@/pages/teacher/profile/ProfilePage';
+import MaterialsPage from '@/pages/teacher/TaiLieu/index';
+import TeacherClasses from '@/pages/teacher/Classes/index';
+import TeacherStudents from '@/pages/teacher/Students/index';
 
-import DiemDanh from '../pages/teacher/DiemDanh/index';
-import LichGiangDay from '../pages/teacher/LichGiangDay/index';
+import DiemDanh from '@/pages/teacher/DiemDanh/index';
+import LichGiangDay from '@/pages/teacher/LichGiangDay/index';
 
-import AssignmentPage from '../pages/teacher/BaiTap/index';
-import ExamList from '../pages/teacher/Exams/index';
-import CreateExam from '../pages/teacher/Exams/CreateExam';
-import ExamDetail from '../pages/teacher/Exams/ExamDetail';
-import EditExam from '../pages/teacher/Exams/EditExam';
-import DiemDanh from '../pages/teacher/DiemDanh';
+import AssignmentPage from '@/pages/teacher/BaiTap/index';
+import ExamList from '@/pages/teacher/Exams/index';
+import CreateExam from '@/pages/teacher/Exams/CreateExam';
+import ExamDetail from '@/pages/teacher/Exams/ExamDetail';
+import EditExam from '@/pages/teacher/Exams/EditExam';
 
 const TeacherRoutes = () => {
   return (
@@ -29,7 +28,6 @@ const TeacherRoutes = () => {
       <Route path="materials" element={<MaterialsPage />} />
       <Route path="materials" element={<Navigate to="/teacher/classes" replace />} />
       <Route path="grades" element={<div className="p-6">Điểm số (coming soon)</div>} />
-      <Route path="assignments" element={<div className="p-6">Bài tập (coming soon)</div>} />
       <Route path="schedule" element={<LichGiangDay />} />
       <Route path="lectures" element={<LichGiangDay />} />
       <Route path="assignments" element={<AssignmentPage />} />

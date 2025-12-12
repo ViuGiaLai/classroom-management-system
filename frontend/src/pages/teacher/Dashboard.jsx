@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { getMyClasses } from '@/api/ClassApi';
-import materialApi from '@/api/materialApi'; // 1. Import API tài liệu
+import materialApi from '@/api/materialApi';
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ReactNode;
-  color?: 'blue' | 'green' | 'purple' | 'orange';
-}
-
-function StatCard({ title, value, subtitle, icon, color = "blue" }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon, color = "blue" }) {
   const colorClasses = {
     blue: "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-200",
     green:
@@ -44,10 +37,18 @@ function StatCard({ title, value, subtitle, icon, color = "blue" }: StatCardProp
   );
 }
 
+StatCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  subtitle: PropTypes.string,
+  icon: PropTypes.node.isRequired,
+  color: PropTypes.oneOf(['blue', 'green', 'purple', 'orange']),
+};
+
 export default function Dashboard() {
   // --- STATE QUẢN LÝ DỮ LIỆU ---
   const [totalClasses, setTotalClasses] = useState(0);
-  const [totalMaterials, setTotalMaterials] = useState(0); // 2. Thêm state cho tài liệu
+  const [totalMaterials, setTotalMaterials] = useState(0); // State cho tài liệu
 
   // --- GỌI API KHI LOAD TRANG ---
   useEffect(() => {
@@ -139,7 +140,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="Tài liệu"
-            value={totalMaterials} // 4. Hiển thị số lượng tài liệu từ API
+            value={totalMaterials}
             subtitle="Đã đăng tải"
             icon={<IconDocument />}
             color="purple"
