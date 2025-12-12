@@ -241,7 +241,7 @@ export default function CoursesPage() {
                     Thông tin
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Khoa
+                    Chuyên ngành
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Tín chỉ

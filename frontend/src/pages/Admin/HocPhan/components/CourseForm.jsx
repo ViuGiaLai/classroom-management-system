@@ -75,7 +75,7 @@ export default function CourseForm({ formData, setFormData, isEdit }) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Bộ môn <span className="text-red-500">*</span>
+            Chuyên ngành <span className="text-red-500">*</span>
           </label>
           <select
             name="department_id"
@@ -84,7 +84,7 @@ export default function CourseForm({ formData, setFormData, isEdit }) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
-            <option value="">Chọn bộ môn</option>
+            <option value="">Chọn Chuyên ngành</option>
             {departments.map(dept => (
               <option key={dept._id} value={dept._id}>
                 {dept.name}
