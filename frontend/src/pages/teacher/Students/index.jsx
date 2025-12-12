@@ -47,22 +47,36 @@ const TeacherStudents = () => {
     };
 
     const fetchAllStudents = async () => {
-        try {
-            setIsLoading(true);
-            const response = await getMyStudents();
-            console.log('My students response:', response);
-            const studentsList = Array.isArray(response) ? response : [];
-            console.log('Students list:', studentsList, 'Count:', studentsList.length);
-            setStudents(studentsList);
-        } catch (error) {
-            console.error('Error fetching all students:', error);
-            console.error('Error details:', error.response?.data || error.message);
-            toast.error('Không thể tải danh sách sinh viên');
-            setStudents([]);
-        } finally {
-            setIsLoading(false);
+    try {
+        setIsLoading(true);
+        const response = await getMyStudents();
+        
+        // In ra để debug
+        console.log('Raw API response:', response);
+
+        let studentsList = [];
+        if (Array.isArray(response)) {
+            studentsList = response;
+        } else if (response && Array.isArray(response.data)) {
+            studentsList = response.data;
+        } else if (response && response.count > 0) {
+            studentsList = response.data || [];
         }
-    };
+
+        console.log('Final students list:', studentsList);
+        setStudents(studentsList);
+        
+        if (studentsList.length === 0) {
+            toast.info("Chưa có sinh viên nào được điểm danh trong các lớp của bạn");
+        }
+    } catch (error) {
+        console.error('Error fetching my students:', error);
+        toast.error('Lỗi tải danh sách sinh viên');
+        setStudents([]);
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     const getStatusColor = (status) => {
         const statusMap = {
@@ -84,26 +98,11 @@ const TeacherStudents = () => {
         {
             title: 'Họ và tên',
             key: 'full_name',
-            render: (_, record) => record.user_id?.full_name || 'N/A',
+            render: (_, record) => {
+                const name = record.user_id?.full_name || record.full_name || 'Chưa có tên';
+                return <span className="font-medium">{name}</span>;
+            },
             width: 200,
-        },
-        {
-            title: 'Email',
-            key: 'email',
-            render: (_, record) => record.user_id?.email || 'N/A',
-            width: 200,
-        },
-        {
-            title: 'Khoa',
-            key: 'faculty',
-            render: (_, record) => record.faculty_id?.name || 'N/A',
-            width: 150,
-        },
-        {
-            title: 'Bộ môn',
-            key: 'department',
-            render: (_, record) => record.department_id?.name || 'N/A',
-            width: 150,
         },
         {
             title: 'Trạng thái',

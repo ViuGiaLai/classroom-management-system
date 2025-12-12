@@ -1,22 +1,40 @@
-import Topbar from "../Admin/Topbar";
-import Sidebar from "./Sidebar";
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Layout } from 'antd';
+import Sidebar from './Sidebar';
+import Topbar from '../Admin/Topbar';
 
-export default function DashboardLayout({ children }) {
+const { Content } = Layout;
+
+export default function DashboardLayout() {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar />
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sidebar
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+      />
 
-      {/* Main Content */}
-      <div className="flex flex-col flex-1">
-        {/* Topbar */}
+      <Layout
+        style={{
+          marginLeft: collapsed ? 80 : 250,
+          transition: 'all 0.2s',
+          minHeight: '100vh',
+        }}
+      >
         <Topbar />
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+        <Content style={{
+          margin: '16px 16px 0',
+          padding: 24,
+          minHeight: 280,
+          background: '#fff',
+          borderRadius: 8,
+        }}>
+          <Outlet />
+        </Content>
+      </Layout>
+    </Layout>
   );
 }

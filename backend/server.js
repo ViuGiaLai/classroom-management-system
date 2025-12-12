@@ -47,9 +47,9 @@ const app = express();
 
 // Giới hạn lượng request
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 phút
-  max: 100,                  // Tối đa 100 request
-  message: 'Too many requests, please try again later.',
+  windowMs: 10 * 60 * 1000,  // 10 phút
+  max: 500,                  
+  message: 'Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 10 phút',
 });
 
 // CORS configuration bảo mật, cookie và frontend giao tiếp với backend.
